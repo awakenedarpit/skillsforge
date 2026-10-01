@@ -1,0 +1,19 @@
+{
+  "name": "skillmatrix",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Operator skill matrix and certification tracker",
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,magenta \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "node scripts/py.js -m uvicorn app.main:app --reload",
+    "dev:web": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "test": "npm run test:api && npm run test:web",
+    "test:api": "node scripts/py.js -m pytest -q",
+    "test:web": "npm --prefix frontend run test",
+    "seed": "node scripts/py.js -m app.seed --reset --verify"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
