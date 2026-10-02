@@ -120,16 +120,16 @@
 ```mermaid
 flowchart TD
     A([User visits app]) --> B{Session exists?}
-    B -- No --> C[/login page/]
+    B -- No --> C["Login Page"]
     C --> D{Click persona}
     D --> E[NextAuth signIn]
     E --> F[JWT issued with role]
     F --> G{Role check}
     B -- Yes --> G
-    G -- SUPER_ADMIN --> H[/superadmin/]
-    G -- ORG_ADMIN --> I[/admin/ Dashboard]
+    G -- SUPER_ADMIN --> H["superadmin"]
+    G -- ORG_ADMIN --> I["Admin Dashboard"]
     G -- APP_ADMIN --> I
-    G -- MEMBER --> J[/portal/ Member Panel]
+    G -- MEMBER --> J["Member Portal"]
     G -- No role --> C
 ```
 
@@ -139,20 +139,19 @@ flowchart TD
 
 ```mermaid
 sequenceDiagram
-    participant U as User (Browser)
-    participant RQ as React Query Cache
-    participant API as /api/operator-skills
-    participant DB as Prisma / SQLite
+    participant U as Browser
+    participant RQ as React Query
+    participant API as API Route
+    participant DB as Database
 
-    U->>RQ: Click cell → change level
-    U->>API: PATCH { operatorId, skillId, level }
+    U->>API: PATCH operatorId + skillId + level
     API->>DB: Upsert SfOperatorSkill
     DB-->>API: Updated record
-    API->>DB: INSERT SfSkillHistory (audit log)
+    API->>DB: INSERT SfSkillHistory
     DB-->>API: OK
-    API-->>U: 200 { success: true }
-    RQ-->>U: invalidateQueries(['coverage','alerts','kpi'])
-    Note over U: Heatmap + KPI cards update<br/>with ZERO page reload (D1 ✅)
+    API-->>U: 200 success
+    U->>RQ: invalidateQueries
+    Note over U,RQ: Heatmap and KPI cards update with ZERO page reload
 ```
 
 ---
@@ -161,15 +160,15 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    A[Select Operator + Machine + Shift] --> B[POST /api/assignments/check]
-    B --> C{Level ≥ 2?}
-    C -- No --> D[🔴 UNQUALIFIED\nReason: Level too low]
+    A["Select Operator + Machine + Shift"] --> B["POST assignment check"]
+    B --> C{Level >= 2?}
+    C -- No --> D["UNQUALIFIED - Level too low"]
     C -- Yes --> E{Cert expired?}
-    E -- Yes --> F[🔴 BLOCKED\nReason: Cert expired N days ago]
-    E -- No --> G{Cert expiring < 30 days?}
-    G -- Yes --> H[🟡 WARNING\nExpires in N days]
-    G -- No --> I[🟢 QUALIFIED\nClear to assign]
-    D --> J[Smart Alternatives\nTop 3 qualified, lowest workload]
+    E -- Yes --> F["BLOCKED - Cert expired"]
+    E -- No --> G{"Cert expiring < 30 days?"}
+    G -- Yes --> H["WARNING - Expires soon"]
+    G -- No --> I["QUALIFIED - Clear to assign"]
+    D --> J["Smart Alternatives: Top 3 qualified"]
     H --> K[Assign with caution]
     I --> L[Assign operator]
 ```
@@ -180,15 +179,15 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    A[Select operator to simulate] --> B[POST /api/simulate/resignation]
-    B --> C[Compute baseline heatmap]
-    B --> D[Compute counterfactual heatmap\nwithout selected operator]
-    C --> E[Side-by-side diff render]
+    A["Select operator to simulate"] --> B["POST simulate/resignation"]
+    B --> C["Compute baseline heatmap"]
+    B --> D["Compute heatmap without operator"]
+    C --> E["Side-by-side diff render"]
     D --> E
     E --> F{Any cell goes RED?}
-    F -- Yes --> G[🚨 Impact Banner\nN cells turn red]
-    F -- No --> H[✅ Resilient\nNo coverage loss]
-    G --> I[Show which machines/shifts\nlose coverage]
+    F -- Yes --> G["Impact Banner: N cells turn red"]
+    F -- No --> H["Resilient: No coverage loss"]
+    G --> I["Show affected machines and shifts"]
 ```
 
 ---
@@ -197,15 +196,15 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    A([Cron / Manual Trigger]) --> B[GET /api/jobs/expiry-check]
-    B --> C[expiryJob.run]
-    C --> D[Query all SfOperatorSkills\nwhere certifiedUntil ≤ today+30]
-    D --> E{Already alerted\nthis run?}
-    E -- Yes --> F[Skip idempotent]
-    E -- No --> G[INSERT SfAlert]
-    G --> H[Log to SfJobRun]
-    H --> I[Alert Panel polls\n/api/alerts every 30s]
-    I --> J[Live badges with exact days\nremaining shown on dashboard]
+    A(["Cron or Manual Trigger"]) --> B["GET jobs/expiry-check"]
+    B --> C["expiryJob.run"]
+    C --> D["Query skills where cert expires within 30 days"]
+    D --> E{Already alerted?}
+    E -- Yes --> F["Skip - idempotent"]
+    E -- No --> G["INSERT SfAlert"]
+    G --> H["Log to SfJobRun"]
+    H --> I["Alert Panel polls every 30s"]
+    I --> J["Live countdown badges on dashboard"]
 ```
 
 ---
@@ -214,19 +213,19 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    A[GET /api/grid] --> B[Fetch all SfOperatorSkills\nfor orgId]
-    B --> C[domain/coverage.ts\npivot function]
-    C --> D{For each Machine × Shift}
-    D --> E[Count operators\nwith level ≥ 2 + valid cert]
+    A["GET /api/grid"] --> B["Fetch all SfOperatorSkills for org"]
+    B --> C["coverage.ts pivot function"]
+    C --> D{"For each Machine x Shift"}
+    D --> E["Count operators with level >= 2 and valid cert"]
     E --> F{count < 2?}
-    F -- Yes --> G[🔴 SPOF cell\nRisk score calculated]
-    F -- No --> H[🟢 Safe cell]
-    G --> I[Heatmap renders\nwith pulsing red glow]
+    F -- Yes --> G["SPOF cell - Risk score calculated"]
+    F -- No --> H["Safe cell"]
+    G --> I["Heatmap renders with red glow"]
     H --> I
     I --> J{Forecast mode?}
-    J -- Yes --> K[Re-run with certs\nexpired at +N days]
+    J -- Yes --> K["Re-run with certs expired at +N days"]
     K --> I
-    J -- No --> L[Final heatmap displayed]
+    J -- No --> L["Final heatmap displayed"]
 ```
 
 ---
@@ -235,14 +234,14 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    M([Member logs in]) --> P[/portal/ Dashboard]
-    P --> A[View own skill levels]
-    P --> B[Mark attendance\nPOST /api/member/attendance]
-    P --> C[Apply for leave\nPOST /api/member/leaves]
-    P --> D[Upload certification\nPOST /api/member/certifications]
-    B --> E[Admin sees record\nat /attendance]
-    C --> F[Admin approves/rejects\nat /leaves]
-    D --> G[Admin verifies cert\nExpiry tracked in SfAlert]
+    M(["Member logs in"]) --> P["Member Portal Dashboard"]
+    P --> A["View own skill levels"]
+    P --> B["Mark attendance"]
+    P --> C["Apply for leave"]
+    P --> D["Upload certification"]
+    B --> E["Admin sees attendance record"]
+    C --> F["Admin approves or rejects leave"]
+    D --> G["Admin verifies cert - Expiry tracked"]
 ```
 
 ---
