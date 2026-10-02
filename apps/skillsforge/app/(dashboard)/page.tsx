@@ -1,16 +1,14 @@
-import { getT } from "@/lib/i18n/getT";
+"use client";
+
+import React from "react";
+import { useT } from "@/lib/i18n/useT";
 import { KpiCards } from "@/components/kpi-cards";
 import { CoverageHeatmap } from "@/components/heatmap";
 import { AlertPanel } from "@/components/alert-panel";
 import { TopRisksCard } from "@/components/top-risks-card";
 
-export const metadata = {
-  title: "Dashboard | SkillsForge",
-  description: "Operator skill matrix, cell coverage and certification alerts",
-};
-
 export default function DashboardPage() {
-  const { t } = getT();
+  const { t } = useT();
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
