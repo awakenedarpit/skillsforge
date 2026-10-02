@@ -119,14 +119,14 @@
 
 ```mermaid
 flowchart TD
-    A([User visits app]) --> B{Session exists?}
+    A["User visits app"] --> B{"Session exists?"}
     B -- No --> C["Login Page"]
-    C --> D{Click persona}
-    D --> E[NextAuth signIn]
-    E --> F[JWT issued with role]
-    F --> G{Role check}
+    C --> D{"Click persona"}
+    D --> E["NextAuth signIn"]
+    E --> F["JWT issued with role"]
+    F --> G{"Role check"}
     B -- Yes --> G
-    G -- SUPER_ADMIN --> H["superadmin"]
+    G -- SUPER_ADMIN --> H["Super Admin Panel"]
     G -- ORG_ADMIN --> I["Admin Dashboard"]
     G -- APP_ADMIN --> I
     G -- MEMBER --> J["Member Portal"]
@@ -139,19 +139,19 @@ flowchart TD
 
 ```mermaid
 sequenceDiagram
-    participant U as Browser
-    participant RQ as React Query
+    participant Browser
+    participant ReactQuery
     participant API as API Route
-    participant DB as Database
+    participant Database
 
-    U->>API: PATCH operatorId + skillId + level
-    API->>DB: Upsert SfOperatorSkill
-    DB-->>API: Updated record
-    API->>DB: INSERT SfSkillHistory
-    DB-->>API: OK
-    API-->>U: 200 success
-    U->>RQ: invalidateQueries
-    Note over U,RQ: Heatmap and KPI cards update with ZERO page reload
+    Browser->>API: PATCH operatorId + skillId + level
+    API->>Database: Upsert SfOperatorSkill
+    Database-->>API: Updated record
+    API->>Database: INSERT SfSkillHistory
+    Database-->>API: OK
+    API-->>Browser: 200 success
+    Browser->>ReactQuery: invalidateQueries
+    Note over Browser: Heatmap and KPI cards update with ZERO page reload
 ```
 
 ---
@@ -161,16 +161,16 @@ sequenceDiagram
 ```mermaid
 flowchart LR
     A["Select Operator + Machine + Shift"] --> B["POST assignment check"]
-    B --> C{Level >= 2?}
+    B --> C{"Level 2 or higher?"}
     C -- No --> D["UNQUALIFIED - Level too low"]
-    C -- Yes --> E{Cert expired?}
+    C -- Yes --> E{"Cert expired?"}
     E -- Yes --> F["BLOCKED - Cert expired"]
-    E -- No --> G{"Cert expiring < 30 days?"}
+    E -- No --> G{"Cert expiring within 30 days?"}
     G -- Yes --> H["WARNING - Expires soon"]
     G -- No --> I["QUALIFIED - Clear to assign"]
-    D --> J["Smart Alternatives: Top 3 qualified"]
-    H --> K[Assign with caution]
-    I --> L[Assign operator]
+    D --> J["Smart Alternatives - Top 3 qualified"]
+    H --> K["Assign with caution"]
+    I --> L["Assign operator"]
 ```
 
 ---
@@ -184,9 +184,9 @@ flowchart TD
     B --> D["Compute heatmap without operator"]
     C --> E["Side-by-side diff render"]
     D --> E
-    E --> F{Any cell goes RED?}
-    F -- Yes --> G["Impact Banner: N cells turn red"]
-    F -- No --> H["Resilient: No coverage loss"]
+    E --> F{"Any cell goes RED?"}
+    F -- Yes --> G["Impact Banner - N cells turn red"]
+    F -- No --> H["Resilient - No coverage loss"]
     G --> I["Show affected machines and shifts"]
 ```
 
@@ -196,10 +196,10 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    A(["Cron or Manual Trigger"]) --> B["GET jobs/expiry-check"]
+    A["Cron or Manual Trigger"] --> B["GET jobs/expiry-check"]
     B --> C["expiryJob.run"]
     C --> D["Query skills where cert expires within 30 days"]
-    D --> E{Already alerted?}
+    D --> E{"Already alerted?"}
     E -- Yes --> F["Skip - idempotent"]
     E -- No --> G["INSERT SfAlert"]
     G --> H["Log to SfJobRun"]
@@ -215,15 +215,15 @@ flowchart LR
 flowchart TD
     A["GET /api/grid"] --> B["Fetch all SfOperatorSkills for org"]
     B --> C["coverage.ts pivot function"]
-    C --> D{"For each Machine x Shift"}
-    D --> E["Count operators with level >= 2 and valid cert"]
-    E --> F{count < 2?}
+    C --> D{"For each Machine and Shift"}
+    D --> E["Count operators with level 2+ and valid cert"]
+    E --> F{"Count less than 2?"}
     F -- Yes --> G["SPOF cell - Risk score calculated"]
     F -- No --> H["Safe cell"]
     G --> I["Heatmap renders with red glow"]
     H --> I
-    I --> J{Forecast mode?}
-    J -- Yes --> K["Re-run with certs expired at +N days"]
+    I --> J{"Forecast mode?"}
+    J -- Yes --> K["Re-run with certs expired at N days"]
     K --> I
     J -- No --> L["Final heatmap displayed"]
 ```
@@ -234,7 +234,7 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    M(["Member logs in"]) --> P["Member Portal Dashboard"]
+    M["Member logs in"] --> P["Member Portal Dashboard"]
     P --> A["View own skill levels"]
     P --> B["Mark attendance"]
     P --> C["Apply for leave"]
@@ -250,19 +250,19 @@ flowchart LR
 
 ```mermaid
 erDiagram
-    SfOrg ||--o{ SfOperator : "has"
-    SfOrg ||--o{ SfSkill : "defines"
-    SfOrg ||--o{ SfAssignment : "records"
-    SfOrg ||--o{ SfAlert : "receives"
-    SfOperator ||--o{ SfOperatorSkill : "has"
-    SfOperator ||--o{ SfAssignment : "assigned to"
-    SfOperator ||--o{ SfAttendance : "logs"
-    SfOperator ||--o{ SfLeaveRequest : "applies"
-    SfOperator ||--o{ SfCertification : "holds"
-    SfSkill ||--o{ SfOperatorSkill : "maps"
-    SfSkill ||--o{ SfAlert : "triggers"
-    SfOperatorSkill ||--o{ SfSkillHistory : "audited by"
-    SfJobRun ||--o{ SfAlert : "creates"
+    SfOrg ||--o{ SfOperator : has
+    SfOrg ||--o{ SfSkill : defines
+    SfOrg ||--o{ SfAssignment : records
+    SfOrg ||--o{ SfAlert : receives
+    SfOperator ||--o{ SfOperatorSkill : has
+    SfOperator ||--o{ SfAssignment : assigned_to
+    SfOperator ||--o{ SfAttendance : logs
+    SfOperator ||--o{ SfLeaveRequest : applies
+    SfOperator ||--o{ SfCertification : holds
+    SfSkill ||--o{ SfOperatorSkill : maps
+    SfSkill ||--o{ SfAlert : triggers
+    SfOperatorSkill ||--o{ SfSkillHistory : audited_by
+    SfJobRun ||--o{ SfAlert : creates
 
     SfOrg {
         string id PK
