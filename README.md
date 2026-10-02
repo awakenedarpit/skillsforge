@@ -177,71 +177,158 @@ flowchart LR
 
 ### 4. Resignation Simulator Flow (MVP-1)
 
-```mermaid
-flowchart TD
-    A["Select operator to simulate"] --> B["POST simulate/resignation"]
-    B --> C["Compute baseline heatmap"]
-    B --> D["Compute heatmap without operator"]
-    C --> E["Side-by-side diff render"]
-    D --> E
-    E --> F{"Any cell goes RED?"}
-    F -- Yes --> G["Impact Banner - N cells turn red"]
-    F -- No --> H["Resilient - No coverage loss"]
-    G --> I["Show affected machines and shifts"]
+```
+┌────────────────────────────────────────────────────────┐
+│             Select Operator to Simulate                │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│             POST /api/simulate/resignation             │
+├───────────────────────────┬────────────────────────────┤
+│   Compute Baseline        │   Compute Simulated        │
+│   Heatmap (With Operator) │   Heatmap (Without Op)     │
+└─────────────┬─────────────┴─────────────┬──────────────┘
+              │                           │
+              └─────────────┬─────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│              Side-by-Side Diff Render                  │
+└───────────────────────────┬────────────────────────────┘
+                            │
+        ┌───────────────────┴───────────────────┐
+        ▼                                       ▼
+┌───────────────────────────────┐ ┌───────────────────────────────┐
+│     Any Cell Turns RED?       │ │       No Cells Turn RED       │
+│     (Critical SPOF Created)   │ │       (Sufficient Backup)     │
+└───────────────┬───────────────┘ └───────────────┬───────────────┘
+                │                                 │
+                ▼                                 ▼
+┌───────────────────────────────┐ ┌───────────────────────────────┐
+│  🚨 Impact Alert Banner:      │ │  ✅ Resilient Status:         │
+│  "N Cells turn RED on Line X" │ │  "Zero Coverage Loss"         │
+└───────────────────────────────┘ └───────────────────────────────┘
 ```
 
 ---
 
 ### 5. Certification Expiry Alert Pipeline (Demo Gate D2)
 
-```mermaid
-flowchart LR
-    A["Cron or Manual Trigger"] --> B["GET jobs/expiry-check"]
-    B --> C["expiryJob.run"]
-    C --> D["Query skills where cert expires within 30 days"]
-    D --> E{"Already alerted?"}
-    E -- Yes --> F["Skip - idempotent"]
-    E -- No --> G["INSERT SfAlert"]
-    G --> H["Log to SfJobRun"]
-    H --> I["Alert Panel polls every 30s"]
-    I --> J["Live countdown badges on dashboard"]
+```
+┌────────────────────────────────────────────────────────┐
+│              Cron Worker or Manual Trigger             │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│               GET /api/jobs/expiry-check               │
+│               (expiryJob.run Worker)                   │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│        Query Operator Skills Expiring ≤ 30 Days        │
+└───────────────────────────┬────────────────────────────┘
+                            │
+        ┌───────────────────┴───────────────────┐
+        │            Already Alerted?           │
+        ├───────────────────┬───────────────────┤
+        ▼                   ▼                   ▼
+    [ Yes ]                                 [ No ]
+        │                                       │
+        ▼                                       ▼
+┌───────────────────────────────┐ ┌───────────────────────────────┐
+│   Skip Record (Idempotent)    │ │   INSERT SfAlert Record       │
+│   No duplicate spam           │ │   daysRemaining = (Exp - Now) │
+└───────────────────────────────┘ └───────────────┬───────────────┘
+                                                  │
+                                                  ▼
+                                  ┌───────────────────────────────┐
+                                  │   Log Execution to SfJobRun   │
+                                  └───────────────┬───────────────┘
+                                                  │
+                                                  ▼
+                                  ┌───────────────────────────────┐
+                                  │   Alert Panel (Polls 30s)     │
+                                  │   Live countdown badges       │
+                                  └───────────────────────────────┘
 ```
 
 ---
 
 ### 6. Coverage Heatmap Computation
 
-```mermaid
-flowchart TD
-    A["GET /api/grid"] --> B["Fetch all SfOperatorSkills for org"]
-    B --> C["coverage.ts pivot function"]
-    C --> D{"For each Machine and Shift"}
-    D --> E["Count operators with level 2+ and valid cert"]
-    E --> F{"Count less than 2?"}
-    F -- Yes --> G["SPOF cell - Risk score calculated"]
-    F -- No --> H["Safe cell"]
-    G --> I["Heatmap renders with red glow"]
-    H --> I
-    I --> J{"Forecast mode?"}
-    J -- Yes --> K["Re-run with certs expired at N days"]
-    K --> I
-    J -- No --> L["Final heatmap displayed"]
+```
+┌────────────────────────────────────────────────────────┐
+│            GET /api/grid (Operator Skills Data)        │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│         coverage.ts Pure Domain Pivot Function         │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│                For each Machine × Shift:               │
+│     Count active operators with Level ≥ 2 & Valid Cert │
+└───────────────────────────┬────────────────────────────┘
+                            │
+        ┌───────────────────┴───────────────────┐
+        ▼                                       ▼
+┌───────────────────────────────┐ ┌───────────────────────────────┐
+│   Count < 2 Operators         │ │   Count ≥ 2 Operators         │
+│   SPOF Vulnerability          │ │   Safe Coverage               │
+└───────────────┬───────────────┘ └───────────────┬───────────────┘
+                │                                 │
+                ▼                                 ▼
+┌───────────────────────────────┐ ┌───────────────────────────────┐
+│   🔴 Red Pulse Glow (CSS)     │ │   🟢 Standard Cell Display    │
+│   Risk Score Computed         │ │   Risk Score = 0              │
+└───────────────┬───────────────┘ └───────────────┬───────────────┘
+                │                                 │
+                └───────────────┬─────────────────┘
+                                │
+                                ▼
+┌────────────────────────────────────────────────────────┐
+│              Forecast Mode Slider (+N Days)?           │
+├───────────────────────────────┬────────────────────────┤
+│            [ Yes ]            │         [ No ]         │
+│  Re-evaluate matrix with certs│  Display live baseline │
+│  expired at +N days lookahead │  coverage matrix       │
+└───────────────────────────────┴────────────────────────┘
 ```
 
 ---
 
 ### 7. Member Portal Self-Service Flow
 
-```mermaid
-flowchart LR
-    M["Member logs in"] --> P["Member Portal Dashboard"]
-    P --> A["View own skill levels"]
-    P --> B["Mark attendance"]
-    P --> C["Apply for leave"]
-    P --> D["Upload certification"]
-    B --> E["Admin sees attendance record"]
-    C --> F["Admin approves or rejects leave"]
-    D --> G["Admin verifies cert - Expiry tracked"]
+```
+┌────────────────────────────────────────────────────────┐
+│                Member Logs In (/portal)                │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│              Member Portal Dashboard                   │
+├──────────────┬──────────────┬──────────────┬───────────┤
+│ View Skills  │ Attendance   │ Leave Request│ Upload    │
+│ & Matrix     │ Self-Mark    │ Application  │ Cert Doc  │
+└──────┬───────┴──────┬───────┴──────┬───────┴─────┬─────┘
+       │              │              │             │
+       ▼              ▼              ▼             ▼
+┌──────────────┐┌────────────┐┌────────────┐┌────────────┐
+│ Personal 0-4 ││ Daily Log  ││ Dates &    ││ Cert File  │
+│ Skill Levels ││ Timestamped││ Reason Sent││ & Expiry   │
+└──────────────┘└─────┬──────┘└──────┬─────┘└──────┬─────┘
+                      │              │             │
+                      ▼              ▼             ▼
+               ┌────────────┐ ┌────────────┐ ┌───────────┐
+               │ Admin Sees │ │ Admin      │ │ Admin     │
+               │ Attendance │ │ Approves or│ │ Verifies  │
+               │ Records    │ │ Rejects    │ │ Validity  │
+               └────────────┘ └────────────┘ └───────────┘
 ```
 
 ---
