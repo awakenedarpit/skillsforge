@@ -1,0 +1,9 @@
+{
+  "name": "@quikit/shared",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "dependencies": {
+    "date-fns": "^4.1.0",
+    "zod": "^3.23.8"
+  }
+}
