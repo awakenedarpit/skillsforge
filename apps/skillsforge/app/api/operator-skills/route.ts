@@ -184,6 +184,32 @@ export const PATCH = withOrgAuth(async (req, ctx) => {
   const certUntilStr = result.certifiedUntil ? formatDateStr(parseDate(result.certifiedUntil)) : null;
   const daysLeft = daysToExpiry(certUntilStr, asOf);
 
+  let recomputedCoverage = null;
+  try {
+    const [shifts, skill, operators, records] = await Promise.all([
+      db.sfShift.findMany({ where: { orgId: ctx.orgId }, orderBy: { code: "asc" } }),
+      db.sfSkill.findFirst({ where: { id: skillId, orgId: ctx.orgId } }),
+      db.sfOperator.findMany({ where: { orgId: ctx.orgId, isActive: true } }),
+      db.sfOperatorSkill.findMany({ where: { orgId: ctx.orgId, skillId } }),
+    ]);
+
+    if (skill) {
+      recomputedCoverage = buildCoverage(
+        operators,
+        [skill],
+        shifts,
+        records.map((r) => ({
+          operatorId: r.operatorId,
+          skillId: r.skillId,
+          level: r.level,
+          issuedOn: r.issuedOn ? formatDateStr(parseDate(r.issuedOn)) : null,
+          certifiedUntil: r.certifiedUntil ? formatDateStr(parseDate(r.certifiedUntil)) : null,
+        })),
+        asOf
+      );
+    }
+  } catch {}
+
   return NextResponse.json({
     success: true,
     data: {
@@ -198,6 +224,7 @@ export const PATCH = withOrgAuth(async (req, ctx) => {
         isExpiringSoon: daysLeft !== null && daysLeft >= 0 && daysLeft <= 30,
         isExpired: daysLeft !== null && daysLeft < 0,
       },
+      recomputedCoverage,
     },
   });
 });

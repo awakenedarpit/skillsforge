@@ -102,7 +102,13 @@ export const GET = withOrgAuth(async (req, ctx) => {
       };
     });
 
-    scoredMachines.sort((a, b) => b.risk.score - a.risk.score);
+    scoredMachines.sort((a, b) => {
+      if (b.risk.score !== a.risk.score) return b.risk.score - a.risk.score;
+      if (b.risk.weighted !== a.risk.weighted) return b.risk.weighted - a.risk.weighted;
+      const aTot = coverage.totals.find((t) => t.skillId === a.skill.id)?.totalQualified ?? 0;
+      const bTot = coverage.totals.find((t) => t.skillId === b.skill.id)?.totalQualified ?? 0;
+      return aTot - bTot;
+    });
     const topRisks = scoredMachines.slice(0, 3);
 
     // 4. Merge DB-side groupBy counts with active skills to identify SPOFs (<2 qualified)
@@ -188,7 +194,13 @@ export const GET = withOrgAuth(async (req, ctx) => {
       };
     });
 
-    scoredMachines.sort((a, b) => b.risk.score - a.risk.score);
+    scoredMachines.sort((a, b) => {
+      if (b.risk.score !== a.risk.score) return b.risk.score - a.risk.score;
+      if (b.risk.weighted !== a.risk.weighted) return b.risk.weighted - a.risk.weighted;
+      const aTot = coverage.totals.find((t) => t.skillId === a.skill.id)?.totalQualified ?? 0;
+      const bTot = coverage.totals.find((t) => t.skillId === b.skill.id)?.totalQualified ?? 0;
+      return aTot - bTot;
+    });
     const topRisks = scoredMachines.slice(0, 3);
 
     const spofs = DEMO_MACHINES.map((skill) => {

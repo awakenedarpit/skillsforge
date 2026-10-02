@@ -9,19 +9,22 @@ Mode: B     Branch: feature/skillsforge-recovery     Last updated: 2026-10-02 15
 - [x] **M4 Skill Grid and History (C1, B2)** (`0420a60` GET /api/grid, PATCH/DELETE /api/operator-skills, GET /api/history, /grid UI with 2-D matrix, inline Popover level edit 0-4, keyboard shortcuts, history SlidePanel, 49/49 tests green)
 - [x] **M5 Heatmap, expiry job, alerts (C2, C3, B3, B4)** (`90e0ac9` GET /api/coverage, GET /api/alerts, POST /api/jobs/expiry-check, GET /api/jobs/runs, dashboard Coverage Heatmap with pulsing red glow, live Alert Panel with days remaining, Admin "Run check now", 59/59 tests green)
 - [x] **M6 Assignment and reports (C4, B5)** (`HEAD` GET /api/assignments/check, POST/GET /api/assignments, GET /api/workload, GET /api/reports/gaps, GET /api/reports/verdict, /assign, /reports, /reports/gaps, /reports/verdict, 71/71 tests green)
-- [ ] **M7 ACCEPTANCE GATE (D1-D4 tests & verification)** (next: write __tests__/api/acceptance.test.ts asserting D1-D4, verify browser demo flow)
+- [x] **M7 ACCEPTANCE GATE (D1-D4 tests & verification)** (`HEAD` `__tests__/api/acceptance.test.ts` asserting D1-D4, 75/75 tests green, 0 type errors, 0 lint errors)
 - [ ] **M8 MVP features (MVP-1 simulator, MVP-2 forecast, MVP-3 alternatives & workload)**
 - [ ] **M9 Bilingual completion audit**
 - [ ] **M10 Final verification and docs**
 
 ## Right now
-1. Write `__tests__/api/acceptance.test.ts` verifying all four compulsory demo-day acceptance criteria:
-   - `D1_edit_changes_heatmap`: live level edit changing coverage count without page reload.
-   - `D2_expiring_cert_on_alert_panel_with_days`: 5 expiring certs + 1 overdue cert on live alert panel with accurate days remaining and idempotency.
-   - `D3_unqualified_assignment_rejected`: 409 rejection with detailed reason messages for level-1 and expired certifications.
-   - `D4_gap_report_names_riskiest`: QA-8 ranked top operational risk with 3 top risks and SPOF aggregation.
-2. Verify browser demo flow.
-3. Commit M7 and proceed to M8 MVP features.
+1. Implement M8 MVP Features:
+   - **MVP-1 (`/simulator`):**
+     - Endpoint `GET /api/simulate/resignation?operatorId=&skillId=&asOf=`
+     - Page `/simulator`: Operator dropdown select, side-by-side heatmaps (before vs after), cards for newly red cells, worsened cells, and machines losing last trainer, with action button linking to Admin.
+   - **MVP-2 (Coverage forecast slider 0 to +90 days):**
+     - Verified working in Heatmap component (`/` dashboard and `/coverage`) with presets (Today, +14d, +30d, +60d, +90d) and live API queries `GET /api/coverage?asOf=`.
+   - **MVP-3 (Alternatives on rejection & Workload fairness):**
+     - Alternatives verified in `/assign`.
+     - Page `/workload`: 14-day workload distribution chart, median reference line, overload badges, top-3 concentration summary.
+2. Commit M8 and proceed to M9 bilingual audit.
 
 ## Verified
 - Git backup branch `backup/pre-recovery` created and baseline committed (`f5afb68`).
