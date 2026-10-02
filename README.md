@@ -613,36 +613,6 @@ All API routes are protected by one of:
 
 ---
 
-## 3-Minute Demo Walkthrough
-
-### Minute 0:00 — Sign-In & Dashboard
-
-1. Open [http://localhost:3011/login](http://localhost:3011/login)
-2. Click **Language Switcher** (`हिं`) — all UI instantly switches to Hindi
-3. Click **"Shop Supervisor (App Admin)"** (Anita Sharma)
-4. Dashboard shows: 5 Red Cells, 1 SPOF Machine, 5 Expiring Certs, 1 Overdue
-
-### Minute 1:00 — Live Edit (D1) + Alerts (D2)
-
-5. Go to **Skill Grid** (`/grid`)
-6. Click any cell → change level → Save
-7. Return to `/` — heatmap and KPIs update **instantly, no reload** ✅
-8. Alert panel shows 5 certs with exact countdown badges ✅
-
-### Minute 2:00 — Assignment Check (D3) + Gap Report (D4)
-
-9. Go to **Assign** (`/assign`) → select an underqualified operator
-10. System returns 🔴 **UNQUALIFIED** with reason + top 3 alternatives ✅
-11. Go to **Reports → Gap Report** → QA-8 ranked #1 risk ✅
-12. Click **Export CSV** → instant download
-
-### Minute 2:30 — Simulator (MVP-1) + Workload (MVP-3)
-
-13. Go to **Simulator** → choose Ravi Kumar → 2 cells turn red instantly ✅
-14. Go to **Workload** → see 14-day bar chart with median benchmark ✅
-
----
-
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -670,14 +640,3 @@ chore:    Build process or tooling
 
 This project is licensed under the **MIT License** — see the [LICENSE](./LICENSE) file for details.
 
----
-
-<div align="center">
-
-**Built with ❤️ by [Priyanshu Jaiswal](https://github.com/priyanshujaiswal17)**
-
-*SkillsForge — Because knowing who can run what machine should never be a guessing game.*
-
-[![GitHub](https://img.shields.io/badge/GitHub-priyanshujaiswal17-181717?style=flat-square&logo=github)](https://github.com/priyanshujaiswal17)
-
-</div>
