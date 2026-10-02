@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useT } from "@/lib/i18n/useT";
 import { today, addDaysToStr } from "@/lib/domain/rules";
+import { daysToExpiry } from "@/lib/domain/qualification";
 import { CoveragePayload, CoverageCellView, SkillDomainView, ShiftDomainView } from "@/lib/domain/coverage";
 import { riskScore } from "@/lib/domain/risk";
 import { Badge, Button, Modal, Skeleton, Slider } from "@quikit/ui";
@@ -265,11 +266,16 @@ export function CoverageHeatmap({
                           )}
 
                           {/* Future turn red notice */}
-                          {cell?.turnsRedOn && !compact && (
-                            <span className="block text-[9px] text-red-600 dark:text-red-400 font-medium mt-1">
-                              turns red {cell.turnsRedOn}
-                            </span>
-                          )}
+                          {cell?.turnsRedOn && !compact && (() => {
+                            const days = daysToExpiry(cell.turnsRedOn, effectiveAsOf);
+                            return (
+                              <span className="block text-[9px] text-red-600 dark:text-red-400 font-medium mt-1">
+                                {locale === "hi"
+                                  ? `${days !== null && days >= 0 ? `${days}d में` : cell.turnsRedOn} लाल होगा`
+                                  : `turns red ${days !== null && days >= 0 ? `in ${days}d` : cell.turnsRedOn}`}
+                              </span>
+                            );
+                          })()}
                         </button>
                       </td>
                     );

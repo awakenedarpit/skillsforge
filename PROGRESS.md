@@ -10,21 +10,17 @@ Mode: B     Branch: feature/skillsforge-recovery     Last updated: 2026-10-02 15
 - [x] **M5 Heatmap, expiry job, alerts (C2, C3, B3, B4)** (`90e0ac9` GET /api/coverage, GET /api/alerts, POST /api/jobs/expiry-check, GET /api/jobs/runs, dashboard Coverage Heatmap with pulsing red glow, live Alert Panel with days remaining, Admin "Run check now", 59/59 tests green)
 - [x] **M6 Assignment and reports (C4, B5)** (`HEAD` GET /api/assignments/check, POST/GET /api/assignments, GET /api/workload, GET /api/reports/gaps, GET /api/reports/verdict, /assign, /reports, /reports/gaps, /reports/verdict, 71/71 tests green)
 - [x] **M7 ACCEPTANCE GATE (D1-D4 tests & verification)** (`HEAD` `__tests__/api/acceptance.test.ts` asserting D1-D4, 75/75 tests green, 0 type errors, 0 lint errors)
-- [ ] **M8 MVP features (MVP-1 simulator, MVP-2 forecast, MVP-3 alternatives & workload)**
+- [x] **M8 MVP features (MVP-1 simulator, MVP-2 forecast, MVP-3 alternatives & workload)** (`HEAD` GET /api/simulate/resignation, /simulator page with side-by-side heatmaps and impact cards, forecast slider with turnsRedOn days, smart alternatives in /assign, /workload page with Recharts bar chart, median reference line and concentration summary, 78/78 tests green)
 - [ ] **M9 Bilingual completion audit**
 - [ ] **M10 Final verification and docs**
 
 ## Right now
-1. Implement M8 MVP Features:
-   - **MVP-1 (`/simulator`):**
-     - Endpoint `GET /api/simulate/resignation?operatorId=&skillId=&asOf=`
-     - Page `/simulator`: Operator dropdown select, side-by-side heatmaps (before vs after), cards for newly red cells, worsened cells, and machines losing last trainer, with action button linking to Admin.
-   - **MVP-2 (Coverage forecast slider 0 to +90 days):**
-     - Verified working in Heatmap component (`/` dashboard and `/coverage`) with presets (Today, +14d, +30d, +60d, +90d) and live API queries `GET /api/coverage?asOf=`.
-   - **MVP-3 (Alternatives on rejection & Workload fairness):**
-     - Alternatives verified in `/assign`.
-     - Page `/workload`: 14-day workload distribution chart, median reference line, overload badges, top-3 concentration summary.
-2. Commit M8 and proceed to M9 bilingual audit.
+1. Execute M9 Bilingual completion audit:
+   - Audit `messages/en.json` and `messages/hi.json` for 100% key parity and identical structure.
+   - Verify all user-facing pages (`/`, `/grid`, `/assign`, `/simulator`, `/workload`, `/reports/gaps`, `/reports/verdict`, `/login`) use translation keys without raw hardcoded text.
+   - Run `__tests__/unit/i18n.test.ts` to assert zero missing keys.
+   - Test language switcher cookie persistence (`sf_locale`).
+2. Commit M9 and proceed to M10 final verification & docs.
 
 ## Verified
 - Git backup branch `backup/pre-recovery` created and baseline committed (`f5afb68`).
