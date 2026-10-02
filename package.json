@@ -1,6 +1,7 @@
 {
   "name": "skillsforge-monorepo",
   "private": true,
+  "packageManager": "npm@11.19.1",
   "workspaces": [
     "apps/*",
     "packages/*"

@@ -1,0 +1,301 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_DIRECT")
+  schemas   = ["public", "app_skillsforge"]
+}
+
+// ── Platform Stand-in Models (public schema) ──
+
+model Org {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members      OrgMember[]
+  appAccess    UserAppAccess[]
+  shifts       SfShift[]
+  operators    SfOperator[]
+  skills       SfSkill[]
+  operatorSkills SfOperatorSkill[]
+  skillHistory SfSkillHistory[]
+  alerts       SfAlert[]
+  jobRuns      SfJobRun[]
+  assignments  SfAssignment[]
+
+  @@schema("public")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships OrgMember[]
+  appAccess   UserAppAccess[]
+
+  @@schema("public")
+}
+
+model OrgMember {
+  id        String   @id @default(cuid())
+  orgId     String
+  userId    String
+  role      String   // super_admin, org_admin, app_admin, member
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org  Org  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId])
+  @@index([orgId])
+  @@schema("public")
+}
+
+model UserAppAccess {
+  id        String   @id @default(cuid())
+  orgId     String
+  userId    String
+  appId     String
+  createdAt DateTime @default(now())
+
+  org  Org  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId, appId])
+  @@index([orgId])
+  @@schema("public")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  orgId      String
+  actorId    String?
+  actorRole  String?
+  action     String   // CREATE | UPDATE | DELETE | RESTORE
+  entityType String
+  entityId   String
+  changesJson String? // field names only
+  reason     String?
+  createdAt  DateTime @default(now())
+
+  @@index([orgId])
+  @@index([orgId, entityType, entityId])
+  @@schema("public")
+}
+
+// ── SkillsForge Domain Models (app_skillsforge schema) ──
+
+model SfShift {
+  id        String   @id @default(cuid())
+  orgId     String
+  code      String   // A, B, C
+  startTime String   // e.g. "06:00"
+  endTime   String   // e.g. "14:00"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+
+  org         Org            @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  operators   SfOperator[]
+  assignments SfAssignment[]
+
+  @@unique([orgId, code])
+  @@index([orgId])
+  @@schema("app_skillsforge")
+}
+
+model SfOperator {
+  id           String    @id @default(cuid())
+  orgId        String
+  employeeCode String
+  name         String
+  shiftId      String
+  isActive     Boolean   @default(true)
+  leftOn       DateTime? @db.Date
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  createdBy    String?
+  updatedBy    String?
+
+  org         Org               @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  shift       SfShift           @relation(fields: [shiftId], references: [id])
+  skills      SfOperatorSkill[]
+  alerts      SfAlert[]
+  assignments SfAssignment[]
+
+  @@unique([orgId, employeeCode])
+  @@index([orgId])
+  @@index([orgId, shiftId])
+  @@index([orgId, isActive])
+  @@schema("app_skillsforge")
+}
+
+model SfSkill {
+  id          String   @id @default(cuid())
+  orgId       String
+  code        String   // e.g. "CNC-L1"
+  name        String   // English e.g. "CNC Lathe"
+  nameHi      String?  // Hindi e.g. "सीएनसी लेथ"
+  lineKey     String   // MACHINING | FORMING | JOINING | FINISHING
+  criticality Int      @default(2) // 1 to 3
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?
+  updatedBy   String?
+
+  org         Org               @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  operators   SfOperatorSkill[]
+  alerts      SfAlert[]
+  assignments SfAssignment[]
+
+  @@unique([orgId, code])
+  @@index([orgId])
+  @@index([orgId, lineKey])
+  @@schema("app_skillsforge")
+}
+
+model SfOperatorSkill {
+  id             String    @id @default(cuid())
+  orgId          String
+  operatorId     String
+  skillId        String
+  level          Int       // 0 to 4
+  issuedOn       DateTime? @db.Date
+  certifiedUntil DateTime? @db.Date
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  createdBy      String?
+  updatedBy      String?
+
+  org      Org        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  operator SfOperator @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+  skill    SfSkill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, operatorId, skillId])
+  @@index([orgId])
+  @@index([orgId, skillId])
+  @@index([orgId, certifiedUntil])
+  @@schema("app_skillsforge")
+}
+
+model SfSkillHistory {
+  id                String    @id @default(cuid())
+  orgId             String
+  operatorId        String
+  skillId           String
+  action            String    // CREATE | UPDATE | DELETE | SEED
+  oldLevel          Int?
+  newLevel          Int?
+  oldIssuedOn       DateTime? @db.Date
+  newIssuedOn       DateTime? @db.Date
+  oldCertifiedUntil DateTime? @db.Date
+  newCertifiedUntil DateTime? @db.Date
+  changedBy         String
+  changedByName     String?
+  changedAt         DateTime  @default(now())
+  reason            String?   @db.Text
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  createdBy         String?
+  updatedBy         String?
+
+  org Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([orgId, operatorId, skillId, changedAt])
+  @@index([orgId, changedAt])
+  @@schema("app_skillsforge")
+}
+
+model SfAlert {
+  id             String    @id @default(cuid())
+  orgId          String
+  operatorId     String
+  skillId        String
+  certifiedUntil DateTime  @db.Date
+  severity       String    // expired | critical | warning | notice
+  daysRemaining  Int
+  status         String    @default("open") // open | resolved
+  firstFlaggedAt DateTime  @default(now())
+  lastCheckedAt  DateTime
+  resolvedAt     DateTime?
+  resolvedReason String?   // renewed | level_lowered | record_removed | operator_inactive
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  createdBy      String?
+  updatedBy      String?
+
+  org      Org        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  operator SfOperator @relation(fields: [operatorId], references: [id])
+  skill    SfSkill    @relation(fields: [skillId], references: [id])
+
+  @@unique([orgId, operatorId, skillId, certifiedUntil])
+  @@index([orgId])
+  @@index([orgId, status, severity])
+  @@schema("app_skillsforge")
+}
+
+model SfJobRun {
+  id            String    @id @default(cuid())
+  orgId         String
+  jobName       String    // e.g. "expiry_check"
+  triggeredBy   String    // scheduler | manual | external | stale_catchup
+  asOfDate      DateTime  @db.Date
+  startedAt     DateTime  @default(now())
+  finishedAt    DateTime?
+  status        String    // ok | error
+  flaggedTotal  Int       @default(0)
+  newlyFlagged  Int       @default(0)
+  resolvedCount Int       @default(0)
+  errorMessage  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdBy     String?
+  updatedBy     String?
+
+  org Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([orgId, jobName, startedAt])
+  @@schema("app_skillsforge")
+}
+
+model SfAssignment {
+  id             String   @id @default(cuid())
+  orgId          String
+  operatorId     String
+  skillId        String
+  shiftId        String
+  assignmentDate DateTime @db.Date
+  status         String   // accepted | rejected
+  verdict        String   // green | red
+  reasonsJson    Json?
+  assignedBy     String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  createdBy      String?
+  updatedBy      String?
+
+  org      Org        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  operator SfOperator @relation(fields: [operatorId], references: [id])
+  skill    SfSkill    @relation(fields: [skillId], references: [id])
+  shift    SfShift    @relation(fields: [shiftId], references: [id])
+
+  @@index([orgId])
+  @@index([orgId, operatorId, assignmentDate])
+  @@index([orgId, skillId, assignmentDate])
+  @@schema("app_skillsforge")
+}
