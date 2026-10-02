@@ -69,4 +69,17 @@ describe("i18n Key Parity and Integrity", () => {
     expect(enDate.length).toBeGreaterThan(0);
     expect(hiDate.length).toBeGreaterThan(0);
   });
+
+  it("should translate core domain terms consistently according to specification glossary", () => {
+    expect(enMessages.common.operator).toBe("Operator");
+    expect(hiMessages.common.operator).toBe("ऑपरेटर");
+    expect(enMessages.common.machine).toBe("Machine");
+    expect(hiMessages.common.machine).toBe("मशीन");
+    expect(enMessages.common.shift).toBe("Shift");
+    expect(hiMessages.common.shift).toBe("शिफ्ट");
+    expect(enMessages.levels["0"]).toBe("None");
+    expect(hiMessages.levels["0"]).toBe("कोई नहीं");
+    expect(enMessages.levels["4"]).toBe("Can train others");
+    expect(hiMessages.levels["4"]).toBe("प्रशिक्षक (दूसरों को सिखा सकते हैं)");
+  });
 });
