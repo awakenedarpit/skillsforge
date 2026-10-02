@@ -1,0 +1,213 @@
+{
+  "common": {
+    "appName": "SkillsForge",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "print": "Print",
+    "exportCsv": "Export CSV",
+    "filter": "Filter",
+    "search": "Search",
+    "status": "Status",
+    "actions": "Actions",
+    "all": "All",
+    "today": "Today",
+    "asOf": "As of",
+    "refresh": "Refresh",
+    "language": "Language",
+    "english": "English",
+    "hindi": "Hindi",
+    "operator": "Operator",
+    "machine": "Machine",
+    "shift": "Shift",
+    "level": "Level",
+    "issuedOn": "Issue date",
+    "certifiedUntil": "Expiry date",
+    "daysRemaining": "Days left",
+    "reason": "Reason",
+    "overdue": "Overdue",
+    "active": "Active",
+    "inactive": "Inactive",
+    "noRecords": "No records found",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "close": "Close",
+    "success": "Success",
+    "error": "Error"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "grid": "Skill Grid",
+    "assign": "Assign",
+    "simulator": "Simulator",
+    "workload": "Workload",
+    "reports": "Reports",
+    "gaps": "Gap Report",
+    "verdict": "Verdict Report",
+    "history": "History",
+    "admin": "Admin",
+    "logout": "Log out"
+  },
+  "login": {
+    "title": "Sign In to SkillsForge",
+    "subtitle": "Operator Skill Matrix & Certification Tracker",
+    "devLoginTitle": "Quick Demo Login",
+    "devLoginSubtitle": "Select a pre-seeded persona to sign in instantly",
+    "roles": {
+      "orgAdmin": "Plant Head (Org Admin)",
+      "appAdmin": "Shop Supervisor (App Admin)",
+      "member": "Auditor / Viewer (Member)"
+    },
+    "signInAs": "Sign in as"
+  },
+  "levels": {
+    "0": "None",
+    "1": "Learning (supervised only)",
+    "2": "Can operate independently",
+    "3": "Proficient",
+    "4": "Can train others"
+  },
+  "dashboard": {
+    "title": "Operations Dashboard",
+    "subtitle": "Real-time operator skill matrix, cell coverage & certification alerts",
+    "kpi": {
+      "redCells": "Red Cells (<2 Qualified)",
+      "spofMachines": "SPOF Machines (Single Point of Failure)",
+      "expiringSoon": "Expiring in 30 Days",
+      "overdueCerts": "Overdue Certifications"
+    },
+    "topRisksTitle": "Top Riskiest Machines",
+    "forecast": "Coverage Forecast",
+    "forecastBanner": "Forecast Mode: Viewing projected coverage after certification expiries",
+    "resetToday": "Reset to Today"
+  },
+  "grid": {
+    "title": "Skill Matrix Grid",
+    "subtitle": "Matrix of operators and machines with inline level & certification editing",
+    "filterShift": "Filter by Shift",
+    "allShifts": "All Shifts",
+    "editCell": "Edit Cell",
+    "setProficiency": "Proficiency Level",
+    "dates": "Certification Dates",
+    "historyTitle": "Cell Change History",
+    "saveSuccess": "Skill record updated successfully",
+    "removeSuccess": "Skill record removed"
+  },
+  "heatmap": {
+    "title": "Coverage Heatmap",
+    "subtitle": "Qualified operators (Level 2+) per machine and shift",
+    "legendTitle": "Coverage Status",
+    "status": {
+      "red": "Red: <2 Qualified (Critical risk)",
+      "amber": "Amber: Exactly 2 Qualified (Thin)",
+      "green": "Green: 3+ Qualified (Safe)"
+    },
+    "total": "Total Qualified",
+    "trainers": "Trainers",
+    "expiring": "Expiring Soon",
+    "cellDetail": "Cell Operators"
+  },
+  "alerts": {
+    "title": "Certification Expiry Alerts",
+    "subtitle": "Certifications requiring urgent renewal within 30 days or overdue",
+    "runCheck": "Run Check Now",
+    "running": "Running check...",
+    "empty": "No certifications expiring in the next 30 days.",
+    "daysLeft": "{days} days left",
+    "overdueBy": "Overdue by {days} days",
+    "severities": {
+      "expired": "Expired",
+      "critical": "Critical (≤7 days)",
+      "warning": "Warning (8-14 days)",
+      "notice": "Notice (15-30 days)"
+    }
+  },
+  "assign": {
+    "title": "Operator Assignment Check",
+    "subtitle": "Check qualification rules before deploying operators to machines",
+    "selectOperator": "Select Operator",
+    "selectMachine": "Select Machine",
+    "selectDate": "Assignment Date",
+    "selectShift": "Shift",
+    "verdictTitle": "Qualification Verdict",
+    "verdict": {
+      "green": "QUALIFIED (APPROVED)",
+      "red": "UNQUALIFIED (REJECTED)"
+    },
+    "blockingReasons": "Blocking Issues",
+    "warnings": "Warnings & Cautions",
+    "alternativesTitle": "Recommended Qualified Alternatives",
+    "assignBtn": "Deploy / Assign Operator",
+    "assignInstead": "Assign Instead",
+    "assignSuccess": "Operator assigned successfully",
+    "assignRejected": "Assignment rejected due to qualification failure",
+    "printVerdict": "Print Verdict Report"
+  },
+  "simulator": {
+    "title": "\"What If X Leaves?\" Resignation Simulator",
+    "subtitle": "Simulate the immediate impact on coverage if an operator resigns or is absent",
+    "selectOperator": "Choose Operator to Simulate Departure",
+    "simulateBtn": "Run Simulation",
+    "summary": "Impact Summary",
+    "impactText": "If {name} leaves, {count} machine-shift cells turn RED.",
+    "newlyRedTitle": "Cells Newly Turning RED",
+    "worsenedTitle": "Cells Worsened",
+    "lostTrainersTitle": "Machines Losing Last Qualified Trainer",
+    "before": "Current Coverage",
+    "after": "Simulated Coverage",
+    "takeAction": "Deactivate Operator in Admin"
+  },
+  "workload": {
+    "title": "Workload Fairness & Distribution",
+    "subtitle": "Track deployment fairness across operators in the trailing 14 days",
+    "median": "Median Assignments",
+    "overloadedNote": "{name} is overloaded ({count} assignments, >1.5× median)",
+    "summary": "{topCount} operators hold {pct}% of all assignments in the last 14 days."
+  },
+  "reports": {
+    "gapsTitle": "Skills & Coverage Gap Report",
+    "gapsSubtitle": "Single points of failure, zero-backup machines, and shift vulnerabilities",
+    "spofTitle": "Single Point of Failure (SPOF) Machines",
+    "spofDescription": "Machines with fewer than 2 qualified operators across the entire plant",
+    "redCellsTitle": "Shift Coverage Gaps (Red Cells)",
+    "riskScore": "Risk Score",
+    "scoreBreakdown": "Score Breakdown",
+    "generatedOn": "Generated on {date} by {user}"
+  },
+  "admin": {
+    "title": "Administration & Master Data",
+    "subtitle": "Manage operators, machines, shifts, job runs, and system resets",
+    "operatorsTab": "Operators",
+    "skillsTab": "Machines / Skills",
+    "jobsTab": "Expiry Job Runs",
+    "dangerTab": "System Reset",
+    "addOperator": "Add Operator",
+    "addSkill": "Add Machine",
+    "employeeCode": "Employee Code",
+    "operatorName": "Operator Name",
+    "lineKey": "Line / Department",
+    "criticality": "Criticality (1-3)",
+    "resetDemoTitle": "Reset Demo Data",
+    "resetDemoDesc": "Clears and reseeds 15 operators, 8 machines, and 5 expiring certs + 1 overdue.",
+    "resetDemoBtn": "Reset to Demo Dataset",
+    "resetSuccess": "Demo dataset reset successfully"
+  },
+  "lines": {
+    "MACHINING": "Machining",
+    "FORMING": "Forming",
+    "JOINING": "Joining",
+    "FINISHING": "Finishing"
+  },
+  "reasons": {
+    "OPERATOR_INACTIVE": "{name} is inactive and cannot be assigned.",
+    "NO_SKILL_RECORD": "No skill record for {name} on {skill}.",
+    "LEVEL_TOO_LOW": "Level {level} on {skill}; needs at least {required} (can operate).",
+    "CERT_EXPIRED": "Certification expired {days} days ago (on {date}).",
+    "CERT_EXPIRING_SOON": "Certification expires in {days} days (on {date}).",
+    "CERT_DATE_MISSING": "No certification expiry recorded for {name} on {skill}.",
+    "WRONG_SHIFT": "{name} is on shift {operatorShift}, not shift {assignmentShift}.",
+    "OVERLOADED": "{name} has {count} assignments in the last 14 days, above 1.5× the median ({median})."
+  }
+}

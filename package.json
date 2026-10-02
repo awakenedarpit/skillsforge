@@ -1,19 +1,29 @@
 {
-  "name": "skillmatrix",
+  "name": "skillsforge-monorepo",
   "private": true,
-  "version": "1.0.0",
-  "description": "Operator skill matrix and certification tracker",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "concurrently -n api,web -c blue,magenta \"npm run dev:api\" \"npm run dev:web\"",
-    "dev:api": "node scripts/py.js -m uvicorn app.main:app --reload",
-    "dev:web": "npm --prefix frontend run dev",
-    "build": "npm --prefix frontend run build",
-    "test": "npm run test:api && npm run test:web",
-    "test:api": "node scripts/py.js -m pytest -q",
-    "test:web": "npm --prefix frontend run test",
-    "seed": "node scripts/py.js -m app.seed --reset --verify"
+    "dev": "turbo run dev --filter=skillsforge",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "e2e": "npm --prefix apps/skillsforge run e2e",
+    "e2e:install": "npm --prefix apps/skillsforge run e2e:install",
+    "db:push": "npm --prefix apps/skillsforge run db:push",
+    "db:generate": "npm --prefix apps/skillsforge run db:generate",
+    "seed": "npm --prefix apps/skillsforge run seed",
+    "seed:verify": "npm --prefix apps/skillsforge run seed:verify",
+    "job:expiry": "npm --prefix apps/skillsforge run job:expiry"
+  },
+  "overrides": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "turbo": "^2.0.14"
   }
 }

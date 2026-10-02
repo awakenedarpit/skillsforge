@@ -1,0 +1,26 @@
+/* LOCAL STAND-IN for @quikit/ui/styles.css: delete at integration */
+:root {
+  --accent-50: 239 246 255;
+  --accent-100: 219 234 254;
+  --accent-200: 191 219 254;
+  --accent-300: 147 197 253;
+  --accent-400: 96 165 250;
+  --accent-500: 59 130 246;
+  --accent-600: 37 99 235;
+  --accent-700: 29 78 216;
+  --accent-800: 30 64 175;
+  --accent-900: 30 58 138;
+}
+
+.dark {
+  --accent-50: 30 58 138;
+  --accent-100: 30 64 175;
+  --accent-200: 29 78 216;
+  --accent-300: 37 99 235;
+  --accent-400: 59 130 246;
+  --accent-500: 96 165 250;
+  --accent-600: 147 197 253;
+  --accent-700: 191 219 254;
+  --accent-800: 219 234 254;
+  --accent-900: 239 246 255;
+}

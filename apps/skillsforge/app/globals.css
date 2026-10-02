@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "../shims/quikit/ui/styles.css";
+
+/* Self-hosted fonts fallback stack */
+body {
+  font-family: "Inter Variable", "Noto Sans Devanagari", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle glowing pulse for red cells in coverage heatmap */
+@keyframes glowRed {
+  0%, 100% {
+    box-shadow: 0 0 10px 2px rgba(239, 68, 68, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 3px 1px rgba(239, 68, 68, 0.15);
+  }
+}
+
+.cell-glow-red {
+  animation: glowRed 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell-glow-red {
+    animation: none;
+    box-shadow: 0 0 0 2px rgb(239 68 68);
+  }
+}
