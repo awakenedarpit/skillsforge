@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useT } from "@/lib/i18n/useT";
@@ -8,11 +8,218 @@ import { today } from "@/lib/domain/rules";
 import { CoveragePayload } from "@/lib/domain/coverage";
 import { AlertItem } from "./alert-panel";
 import { Skeleton } from "@quikit/ui";
-import { AlertTriangle, ShieldAlert, Clock, AlertCircle } from "lucide-react";
+import { AlertTriangle, ShieldAlert, Clock, AlertCircle, ArrowUpRight } from "lucide-react";
+import { CertificationsModal } from "./certifications-modal";
+
+// ── Color configs per accent style ──
+const ACCENT_CONFIG = {
+  red: {
+    iconColor: "rgb(220 38 38)",
+    valueColor: "rgb(220 38 38)",
+    badgeBg: "rgb(220 38 38 / 0.08)",
+    badgeText: "rgb(185 28 28)",
+    glow: "rgb(220 38 38 / 0.15)",
+    borderAccent: "rgb(220 38 38 / 0.3)",
+    gradientFrom: "rgb(220 38 38 / 0.06)",
+    barColor: "rgb(220 38 38)",
+  },
+  amber: {
+    iconColor: "rgb(var(--accent-600))",
+    valueColor: "rgb(var(--accent-600))",
+    badgeBg: "rgb(var(--accent-500) / 0.08)",
+    badgeText: "rgb(var(--accent-700))",
+    glow: "rgb(var(--accent-500) / 0.15)",
+    borderAccent: "rgb(var(--accent-500) / 0.3)",
+    gradientFrom: "rgb(var(--accent-500) / 0.05)",
+    barColor: "rgb(var(--accent-600))",
+  },
+  blue: {
+    iconColor: "rgb(37 99 235)",
+    valueColor: "rgb(37 99 235)",
+    badgeBg: "rgb(37 99 235 / 0.08)",
+    badgeText: "rgb(29 78 216)",
+    glow: "rgb(37 99 235 / 0.15)",
+    borderAccent: "rgb(37 99 235 / 0.3)",
+    gradientFrom: "rgb(37 99 235 / 0.05)",
+    barColor: "rgb(37 99 235)",
+  },
+  neutral: {
+    iconColor: "rgb(var(--text-muted))",
+    valueColor: "rgb(var(--text))",
+    badgeBg: "rgb(var(--surface-raised))",
+    badgeText: "rgb(var(--text-secondary))",
+    glow: "rgb(var(--border))",
+    borderAccent: "rgb(var(--border-strong))",
+    gradientFrom: "transparent",
+    barColor: "rgb(var(--text-muted))",
+  },
+} as const;
+
+// ── Single KPI card ──
+function KpiCard({
+  label,
+  value,
+  sub,
+  linkLabel,
+  href,
+  onClick,
+  accentStyle,
+  icon: Icon,
+  animationDelay,
+  maxValue = 20,
+}: {
+  label: string;
+  value: number | string;
+  sub: string;
+  linkLabel: string;
+  href?: string;
+  onClick?: () => void;
+  accentStyle: "red" | "amber" | "blue" | "neutral";
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+  animationDelay: string;
+  maxValue?: number;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const c = ACCENT_CONFIG[accentStyle];
+  const numericValue = typeof value === "number" ? value : 0;
+  const fillPercent = Math.min((numericValue / maxValue) * 100, 100);
+
+  const inner = (
+    <div
+      className="group relative rounded-xl flex flex-col gap-0 cursor-pointer overflow-hidden animate-slide-up"
+      style={{
+        backgroundColor: "rgb(var(--surface))",
+        border: `1px solid ${hovered ? c.borderAccent : "rgb(var(--border))"}`,
+        animationDelay,
+        transition: "border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease",
+        boxShadow: hovered
+          ? `var(--shadow-md), 0 0 0 1px ${c.borderAccent}`
+          : "var(--shadow-sm)",
+        transform: hovered ? "translateY(-2px)" : "translateY(0)",
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Top gradient wash */}
+      <div
+        className="absolute inset-x-0 top-0 h-20 pointer-events-none"
+        style={{
+          background: `linear-gradient(180deg, ${c.gradientFrom} 0%, transparent 100%)`,
+          opacity: hovered ? 1 : 0.6,
+          transition: "opacity 200ms ease",
+        }}
+        aria-hidden="true"
+      />
+
+      {/* Left accent stripe */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r kpi-stripe"
+        style={{ backgroundColor: c.iconColor }}
+        aria-hidden="true"
+      />
+
+      {/* Content */}
+      <div className="relative flex flex-col gap-4 p-5 pl-6">
+        {/* Header row */}
+        <div className="flex items-start justify-between gap-2">
+          <span
+            className="text-[10px] font-mono font-semibold uppercase tracking-[0.1em] leading-tight pt-0.5"
+            style={{ color: "rgb(var(--text-muted))" }}
+          >
+            {label}
+          </span>
+
+          {/* Icon box */}
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-[200ms]"
+            style={{
+              backgroundColor: c.badgeBg,
+              transform: hovered ? "scale(1.1) rotate(3deg)" : "scale(1) rotate(0deg)",
+            }}
+          >
+            <Icon className="w-4 h-4" style={{ color: c.iconColor }} />
+          </div>
+        </div>
+
+        {/* Value */}
+        <div>
+          <p
+            className="text-[2.5rem] font-bold font-mono tabular-nums leading-none animate-tick-in"
+            style={{ color: c.valueColor, animationDelay }}
+          >
+            {value}
+          </p>
+          <p
+            className="text-[11px] mt-1.5 leading-snug"
+            style={{ color: "rgb(var(--text-muted))" }}
+          >
+            {sub}
+          </p>
+        </div>
+
+        {/* Progress bar */}
+        <div
+          className="h-1 w-full rounded-full overflow-hidden"
+          style={{ backgroundColor: "rgb(var(--surface-raised))" }}
+        >
+          <div
+            className="h-full rounded-full risk-bar-fill"
+            style={{
+              width: `${fillPercent}%`,
+              backgroundColor: c.barColor,
+              animationDelay,
+            }}
+          />
+        </div>
+
+        {/* Footer link */}
+        <div
+          className="flex items-center justify-end gap-1 pt-1"
+          style={{ borderTop: "1px solid rgb(var(--border))" }}
+        >
+          <span
+            className="text-[11px] font-semibold transition-colors duration-[120ms] flex items-center gap-0.5"
+            style={{ color: c.iconColor }}
+          >
+            {linkLabel}
+            <ArrowUpRight
+              className="w-3 h-3 transition-transform duration-[120ms]"
+              style={{ transform: hovered ? "translate(1px, -1px)" : "translate(0, 0)" }}
+            />
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        prefetch={true}
+        className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 rounded-xl"
+      >
+        {inner}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 rounded-xl"
+    >
+      {inner}
+    </button>
+  );
+}
 
 export function KpiCards() {
-  const { t } = useT();
+  const { t, locale } = useT();
   const asOf = today();
+  const [certModalOpen, setCertModalOpen] = useState(false);
+  const [certFilter, setCertFilter] = useState<"ALL" | "EXPIRING" | "OVERDUE">("ALL");
 
   const { data: coverage, isLoading: isCoverageLoading } = useQuery<CoveragePayload>({
     queryKey: ["coverage", asOf],
@@ -22,7 +229,6 @@ export function KpiCards() {
       const json = await res.json();
       return json.data;
     },
-    refetchInterval: 15000,
   });
 
   const { data: alerts, isLoading: isAlertsLoading } = useQuery<AlertItem[]>({
@@ -33,100 +239,110 @@ export function KpiCards() {
       const json = await res.json();
       return json.data;
     },
-    refetchInterval: 15000,
   });
 
   if (isCoverageLoading || isAlertsLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} className="h-28 rounded-xl" />
+          <div
+            key={i}
+            className="rounded-xl h-44 animate-pulse"
+            style={{
+              backgroundColor: "rgb(var(--surface))",
+              border: "1px solid rgb(var(--border))",
+            }}
+          >
+            <div className="p-5 pl-6 space-y-4">
+              <div className="flex justify-between">
+                <div className="h-2.5 w-20 rounded animate-shimmer" />
+                <div
+                  className="w-8 h-8 rounded-lg animate-shimmer"
+                  style={{ backgroundColor: "rgb(var(--surface-raised))" }}
+                />
+              </div>
+              <div className="h-10 w-16 rounded animate-shimmer" />
+              <div className="h-1 w-full rounded-full animate-shimmer" />
+            </div>
+          </div>
         ))}
       </div>
     );
   }
 
-  const redCellsCount = coverage ? coverage.cells.filter((c) => c.status === "RED").length : 5;
-  const spofCount = coverage ? coverage.totals.filter((t) => t.isSpof).length : 1;
-  const expiringCount = alerts ? alerts.filter((a) => a.daysRemaining >= 0 && a.daysRemaining <= 30).length : 5;
-  const overdueCount = alerts ? alerts.filter((a) => a.daysRemaining < 0).length : 1;
+  const redCellsCount = coverage?.cells
+    ? coverage.cells.filter((c) => c.status === "RED").length
+    : 5;
+  const spofCount = coverage?.totals
+    ? coverage.totals.filter((t) => t.isSpof).length
+    : 1;
+  const expiringCount = Array.isArray(alerts)
+    ? alerts.filter((a) => a.daysRemaining >= 0 && a.daysRemaining <= 30).length
+    : 5;
+  const overdueCount = Array.isArray(alerts)
+    ? alerts.filter((a) => a.daysRemaining < 0).length
+    : 1;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {/* 1. Red Cells */}
-      <div className="rounded-xl border border-red-200 dark:border-red-900/60 bg-red-50/60 dark:bg-red-950/30 p-5 shadow-sm flex flex-col justify-between">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-red-800 dark:text-red-300 uppercase tracking-wider">
-            {t("dashboard.kpi.redCells")}
-          </span>
-          <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
-        </div>
-        <div>
-          <p className="text-3xl font-black font-mono text-red-600 dark:text-red-400 mt-2">
-            {redCellsCount}
-          </p>
-          <span className="text-[11px] font-medium text-red-700/80 dark:text-red-400/80 mt-1 block">
-            Fewer than 2 qualified operators per shift
-          </span>
-        </div>
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard
+          label={t("dashboard.kpi.redCells")}
+          value={redCellsCount}
+          sub={locale === "hi" ? "प्रति शिफ्ट 2 से कम ऑपरेटर" : "Fewer than 2 qualified operators"}
+          linkLabel={locale === "hi" ? "गैप रिपोर्ट" : "Gap Report"}
+          href="/reports/gaps"
+          accentStyle="red"
+          icon={AlertTriangle}
+          animationDelay="0ms"
+          maxValue={Math.max(redCellsCount, 10)}
+        />
+        <KpiCard
+          label={t("dashboard.kpi.spofMachines")}
+          value={spofCount}
+          sub={locale === "hi" ? "केवल 1 बैकअप उपलब्ध" : "Single point of failure"}
+          linkLabel={locale === "hi" ? "मशीन विवरण" : "SPOF Report"}
+          href="/reports/gaps"
+          accentStyle="amber"
+          icon={ShieldAlert}
+          animationDelay="60ms"
+          maxValue={Math.max(spofCount, 5)}
+        />
+        <KpiCard
+          label={t("dashboard.kpi.expiringSoon")}
+          value={expiringCount}
+          sub={locale === "hi" ? "30 दिनों के भीतर समाप्त" : "Within 30-day window"}
+          linkLabel={locale === "hi" ? "प्रमाणन विवरण" : "Certifications"}
+          onClick={() => {
+            setCertFilter("EXPIRING");
+            setCertModalOpen(true);
+          }}
+          accentStyle="blue"
+          icon={Clock}
+          animationDelay="120ms"
+          maxValue={Math.max(expiringCount, 10)}
+        />
+        <KpiCard
+          label={t("dashboard.kpi.overdueCerts")}
+          value={overdueCount}
+          sub={locale === "hi" ? "अमान्य प्रमाण पत्र" : "Past expiration date"}
+          linkLabel={locale === "hi" ? "प्रमाणन विवरण" : "Certifications"}
+          onClick={() => {
+            setCertFilter("OVERDUE");
+            setCertModalOpen(true);
+          }}
+          accentStyle="red"
+          icon={AlertCircle}
+          animationDelay="180ms"
+          maxValue={Math.max(overdueCount, 5)}
+        />
       </div>
 
-      {/* 2. SPOF Machines */}
-      <Link
-        href="/reports/gaps"
-        className="rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/30 p-5 shadow-sm flex flex-col justify-between hover:bg-amber-100/50 transition-colors"
-      >
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider">
-            {t("dashboard.kpi.spofMachines")}
-          </span>
-          <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-        </div>
-        <div>
-          <p className="text-3xl font-black font-mono text-amber-600 dark:text-amber-400 mt-2">
-            {spofCount}
-          </p>
-          <span className="text-[11px] font-medium text-amber-700/80 dark:text-amber-400/80 mt-1 block">
-            QA-8 (CMM Inspection) has only 1 backup
-          </span>
-        </div>
-      </Link>
-
-      {/* 3. Expiring soon */}
-      <div className="rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/60 dark:bg-blue-950/30 p-5 shadow-sm flex flex-col justify-between">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">
-            {t("dashboard.kpi.expiringSoon")}
-          </span>
-          <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-        </div>
-        <div>
-          <p className="text-3xl font-black font-mono text-blue-600 dark:text-blue-400 mt-2">
-            {expiringCount}
-          </p>
-          <span className="text-[11px] font-medium text-blue-700/80 dark:text-blue-400/80 mt-1 block">
-            Within 30 days window (3 to 28 days)
-          </span>
-        </div>
-      </div>
-
-      {/* 4. Overdue certs */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm flex flex-col justify-between">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-            {t("dashboard.kpi.overdueCerts")}
-          </span>
-          <AlertCircle className="w-4 h-4 text-red-500" />
-        </div>
-        <div>
-          <p className="text-3xl font-black font-mono text-red-600 dark:text-red-400 mt-2">
-            {overdueCount}
-          </p>
-          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-1 block">
-            Past expiration (unqualified status)
-          </span>
-        </div>
-      </div>
-    </div>
+      <CertificationsModal
+        open={certModalOpen}
+        onOpenChange={setCertModalOpen}
+        defaultFilter={certFilter}
+      />
+    </>
   );
 }

@@ -74,7 +74,7 @@ export const GET = withOrgAuth(async (req, ctx) => {
     ]);
 
     // 2. Build coverage pivot
-    const mappedRecords = records.map((r) => ({
+    const mappedRecords = records.map((r: any) => ({
       operatorId: r.operatorId,
       skillId: r.skillId,
       level: r.level,
@@ -90,10 +90,10 @@ export const GET = withOrgAuth(async (req, ctx) => {
       cellMap.set(`${c.skillId}_${c.shiftId}`, c);
     }
 
-    const scoredMachines = skills.map((skill) => {
+    const scoredMachines = skills.map((skill: any) => {
       const skillCells = shifts
-        .map((s) => cellMap.get(`${skill.id}_${s.id}`))
-        .filter((c): c is CoverageCellView => Boolean(c));
+        .map((s: any) => cellMap.get(`${skill.id}_${s.id}`))
+        .filter((c: any): c is CoverageCellView => Boolean(c));
 
       const risk = riskScore(skill.criticality, skillCells);
       return {
@@ -102,11 +102,11 @@ export const GET = withOrgAuth(async (req, ctx) => {
       };
     });
 
-    scoredMachines.sort((a, b) => {
+    scoredMachines.sort((a: any, b: any) => {
       if (b.risk.score !== a.risk.score) return b.risk.score - a.risk.score;
       if (b.risk.weighted !== a.risk.weighted) return b.risk.weighted - a.risk.weighted;
-      const aTot = coverage.totals.find((t) => t.skillId === a.skill.id)?.totalQualified ?? 0;
-      const bTot = coverage.totals.find((t) => t.skillId === b.skill.id)?.totalQualified ?? 0;
+      const aTot = coverage.totals.find((t: any) => t.skillId === a.skill.id)?.totalQualified ?? 0;
+      const bTot = coverage.totals.find((t: any) => t.skillId === b.skill.id)?.totalQualified ?? 0;
       return aTot - bTot;
     });
     const topRisks = scoredMachines.slice(0, 3);
@@ -118,18 +118,18 @@ export const GET = withOrgAuth(async (req, ctx) => {
     }
 
     const spofs = skills
-      .map((skill) => {
+      .map((skill: any) => {
         const count = groupByCountMap.get(skill.id) ?? 0;
-        const totalView = coverage.totals.find((t) => t.skillId === skill.id);
+        const totalView = coverage.totals.find((t: any) => t.skillId === skill.id);
         const skillCells = shifts
-          .map((s) => cellMap.get(`${skill.id}_${s.id}`))
-          .filter((c): c is CoverageCellView => Boolean(c));
+          .map((s: any) => cellMap.get(`${skill.id}_${s.id}`))
+          .filter((c: any): c is CoverageCellView => Boolean(c));
 
         const risk = riskScore(skill.criticality, skillCells);
 
         const loneOperators = skillCells
-          .flatMap((c) => c.operators)
-          .filter((v, i, a) => a.findIndex((t) => t.id === v.id) === i);
+          .flatMap((c: any) => c.operators)
+          .filter((v: any, i: number, a: any[]) => a.findIndex((t: any) => t.id === v.id) === i);
 
         return {
           skill,
@@ -140,15 +140,15 @@ export const GET = withOrgAuth(async (req, ctx) => {
           risk,
         };
       })
-      .filter((s) => s.qualifiedCount < 2)
-      .sort((a, b) => b.risk.score - a.risk.score);
+      .filter((s: any) => s.qualifiedCount < 2)
+      .sort((a: any, b: any) => b.risk.score - a.risk.score);
 
     // 5. Red cells (<2 qualified on a machine-shift pair)
     const redCells = coverage.cells
-      .filter((c) => c.status === "RED")
-      .map((c) => {
-        const skill = skills.find((s) => s.id === c.skillId)!;
-        const shift = shifts.find((s) => s.id === c.shiftId)!;
+      .filter((c: any) => c.status === "RED")
+      .map((c: any) => {
+        const skill = skills.find((s: any) => s.id === c.skillId)!;
+        const shift = shifts.find((s: any) => s.id === c.shiftId)!;
         return {
           ...c,
           skill,

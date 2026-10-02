@@ -20,9 +20,11 @@ export function Providers({
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 5000,
+            staleTime: 5 * 60 * 1000,
+            gcTime: 10 * 60 * 1000,
+            refetchOnMount: false,
             refetchOnWindowFocus: false,
-            retry: 1,
+            retry: 0,
           },
         },
       })

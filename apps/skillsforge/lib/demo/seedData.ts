@@ -8,22 +8,30 @@ export const DEMO_ORG = {
 
 export const DEMO_USERS = [
   {
+    id: "usr-super-0",
+    email: "superadmin@skillsforge.quikit.io",
+    name: "System SuperAdmin",
+    role: "org_admin",
+    isSuperAdmin: true,
+  },
+  {
     id: "usr-asha-1",
     email: "asha.verma@skillsforge.quikit.io",
     name: "Asha Verma",
     role: "org_admin",
   },
   {
-    id: "usr-rohit-2",
-    email: "rohit.kulkarni@skillsforge.quikit.io",
-    name: "Rohit Kulkarni",
-    role: "app_admin", // supervisor
-  },
-  {
     id: "usr-vikas-3",
     email: "vikas.rao@skillsforge.quikit.io",
     name: "Vikas Rao",
-    role: "member", // read-only viewer
+    role: "app_admin", // supervisor
+  },
+  {
+    id: "usr-rohit-2",
+    email: "rohit.kulkarni@skillsforge.quikit.io",
+    name: "Rohit Kulkarni",
+    role: "member", // operator / member
+    operatorId: "op-001",
   },
 ];
 
@@ -46,32 +54,42 @@ export const DEMO_MACHINES = [
 
 export const DEMO_OPERATORS = [
   // Shift A (5 operators)
-  { id: "op-001", employeeCode: "OP-001", name: "Ravi Kumar", shiftId: "shift-a", isActive: true },
-  { id: "op-002", employeeCode: "OP-002", name: "Anita Sharma", shiftId: "shift-a", isActive: true },
-  { id: "op-003", employeeCode: "OP-003", name: "Suresh Patil", shiftId: "shift-a", isActive: true },
-  { id: "op-004", employeeCode: "OP-004", name: "Meena Iyer", shiftId: "shift-a", isActive: true },
-  { id: "op-005", employeeCode: "OP-005", name: "Arjun Singh", shiftId: "shift-a", isActive: true },
+  { id: "op-001", employeeCode: "OP-001", name: "Ravi Kumar", shiftId: "shift-a", isActive: true, shift: { id: "shift-a", code: "A", startTime: "06:00", endTime: "14:00" } },
+  { id: "op-002", employeeCode: "OP-002", name: "Anita Sharma", shiftId: "shift-a", isActive: true, shift: { id: "shift-a", code: "A", startTime: "06:00", endTime: "14:00" } },
+  { id: "op-003", employeeCode: "OP-003", name: "Suresh Patil", shiftId: "shift-a", isActive: true, shift: { id: "shift-a", code: "A", startTime: "06:00", endTime: "14:00" } },
+  { id: "op-004", employeeCode: "OP-004", name: "Meena Iyer", shiftId: "shift-a", isActive: true, shift: { id: "shift-a", code: "A", startTime: "06:00", endTime: "14:00" } },
+  { id: "op-005", employeeCode: "OP-005", name: "Arjun Singh", shiftId: "shift-a", isActive: true, shift: { id: "shift-a", code: "A", startTime: "06:00", endTime: "14:00" } },
 
   // Shift B (5 operators)
-  { id: "op-006", employeeCode: "OP-006", name: "Farhan Sheikh", shiftId: "shift-b", isActive: true },
-  { id: "op-007", employeeCode: "OP-007", name: "Kavita Nair", shiftId: "shift-b", isActive: true },
-  { id: "op-008", employeeCode: "OP-008", name: "Deepak Verma", shiftId: "shift-b", isActive: true },
-  { id: "op-009", employeeCode: "OP-009", name: "Pooja Desai", shiftId: "shift-b", isActive: true },
-  { id: "op-010", employeeCode: "OP-010", name: "Imran Khan", shiftId: "shift-b", isActive: true },
+  { id: "op-006", employeeCode: "OP-006", name: "Farhan Sheikh", shiftId: "shift-b", isActive: true, shift: { id: "shift-b", code: "B", startTime: "14:00", endTime: "22:00" } },
+  { id: "op-007", employeeCode: "OP-007", name: "Kavita Nair", shiftId: "shift-b", isActive: true, shift: { id: "shift-b", code: "B", startTime: "14:00", endTime: "22:00" } },
+  { id: "op-008", employeeCode: "OP-008", name: "Deepak Verma", shiftId: "shift-b", isActive: true, shift: { id: "shift-b", code: "B", startTime: "14:00", endTime: "22:00" } },
+  { id: "op-009", employeeCode: "OP-009", name: "Pooja Desai", shiftId: "shift-b", isActive: true, shift: { id: "shift-b", code: "B", startTime: "14:00", endTime: "22:00" } },
+  { id: "op-010", employeeCode: "OP-010", name: "Imran Khan", shiftId: "shift-b", isActive: true, shift: { id: "shift-b", code: "B", startTime: "14:00", endTime: "22:00" } },
 
   // Shift C (5 operators)
-  { id: "op-011", employeeCode: "OP-011", name: "Sunita Rao", shiftId: "shift-c", isActive: true },
-  { id: "op-012", employeeCode: "OP-012", name: "Vikram Chauhan", shiftId: "shift-c", isActive: true },
-  { id: "op-013", employeeCode: "OP-013", name: "Neha Joshi", shiftId: "shift-c", isActive: true },
-  { id: "op-014", employeeCode: "OP-014", name: "Rahul Mehta", shiftId: "shift-c", isActive: true },
-  { id: "op-015", employeeCode: "OP-015", name: "Lakshmi Reddy", shiftId: "shift-c", isActive: true },
+  { id: "op-011", employeeCode: "OP-011", name: "Sunita Rao", shiftId: "shift-c", isActive: true, shift: { id: "shift-c", code: "C", startTime: "22:00", endTime: "06:00" } },
+  { id: "op-012", employeeCode: "OP-012", name: "Vikram Chauhan", shiftId: "shift-c", isActive: true, shift: { id: "shift-c", code: "C", startTime: "22:00", endTime: "06:00" } },
+  { id: "op-013", employeeCode: "OP-013", name: "Neha Joshi", shiftId: "shift-c", isActive: true, shift: { id: "shift-c", code: "C", startTime: "22:00", endTime: "06:00" } },
+  { id: "op-014", employeeCode: "OP-014", name: "Rahul Mehta", shiftId: "shift-c", isActive: true, shift: { id: "shift-c", code: "C", startTime: "22:00", endTime: "06:00" } },
+  { id: "op-015", employeeCode: "OP-015", name: "Lakshmi Reddy", shiftId: "shift-c", isActive: true, shift: { id: "shift-c", code: "C", startTime: "22:00", endTime: "06:00" } },
 ];
+
+const globalForDemo = globalThis as unknown as {
+  _demoSkillRecords?: any[];
+  _demoHistory?: any[];
+  _demoLeaveRequests?: DemoLeaveRequest[];
+  _demoCertificateSubmissions?: DemoCertificateSubmission[];
+  _demoAttendanceRecords?: DemoAttendanceRecord[];
+};
 
 /**
  * Returns the exact skill matrix records for the 15 operators x 8 machines.
  * All dates are dynamically relative to baseDate (defaults to today()).
  */
 export function getDemoSkillRecords(baseDate = today()) {
+  if (globalForDemo._demoSkillRecords) return globalForDemo._demoSkillRecords;
+
   const issuedPast = addDaysToStr(baseDate, -365);
   const future1Y = addDaysToStr(baseDate, 365);
   const future2Y = addDaysToStr(baseDate, 730);
@@ -86,7 +104,7 @@ export function getDemoSkillRecords(baseDate = today()) {
   // 1 overdue cert (-5 days ago)
   const overdue5 = addDaysToStr(baseDate, -5);
 
-  return [
+  const records = [
     // ── QA-8: Exactly 1 qualified operator overall (Ravi Kumar, level 4, expires in 9 days) ──
     { operatorId: "op-001", skillId: "sk-qa-8", level: 4, issuedOn: issuedPast, certifiedUntil: exp9 }, // Expiring cert #2 (9 days)
 
@@ -188,6 +206,105 @@ export function getDemoSkillRecords(baseDate = today()) {
     { operatorId: "op-009", skillId: "sk-wld-6", level: 0, issuedOn: null, certifiedUntil: null },
     { operatorId: "op-013", skillId: "sk-wld-6", level: 0, issuedOn: null, certifiedUntil: null },
   ];
+  globalForDemo._demoSkillRecords = records;
+  return globalForDemo._demoSkillRecords;
+}
+
+export function updateDemoSkillRecord(operatorId: string, skillId: string, updates: any) {
+  if (!globalForDemo._demoSkillRecords) getDemoSkillRecords(today());
+  const records = globalForDemo._demoSkillRecords!;
+  const idx = records.findIndex(r => r.operatorId === operatorId && r.skillId === skillId);
+  const oldLevel = idx !== -1 ? records[idx].level : 0;
+  if (idx !== -1) {
+    records[idx] = { ...records[idx], ...updates };
+  } else {
+    records.push({ operatorId, skillId, ...updates });
+  }
+
+  const isTrainer = (updates.level ?? oldLevel) >= 4;
+  recordDemoHistory({
+    operatorId,
+    skillId,
+    action: isTrainer && oldLevel < 4 ? "PROMOTE" : updates.level !== undefined ? "UPDATE" : "RENEW",
+    oldLevel,
+    newLevel: updates.level !== undefined ? updates.level : oldLevel,
+    newIssuedOn: updates.issuedOn || null,
+    newCertifiedUntil: updates.certifiedUntil || null,
+    reason: updates.reason || (isTrainer ? "Promoted to L4 Master Trainer" : "Manual update in Skill Grid"),
+  });
+}
+
+export function deleteDemoSkillRecord(operatorId: string, skillId: string) {
+  if (!globalForDemo._demoSkillRecords) getDemoSkillRecords(today());
+  const records = globalForDemo._demoSkillRecords!;
+  const rec = records.find(r => r.operatorId === operatorId && r.skillId === skillId);
+  globalForDemo._demoSkillRecords = records.filter(r => !(r.operatorId === operatorId && r.skillId === skillId));
+
+  recordDemoHistory({
+    operatorId,
+    skillId,
+    action: "DELETE",
+    oldLevel: rec ? rec.level : 0,
+    newLevel: 0,
+    reason: "Deleted skill qualification",
+  });
+}
+
+export function getDemoHistory(baseDate = today()) {
+  if (globalForDemo._demoHistory) return globalForDemo._demoHistory;
+
+  const records = getDemoSkillRecords(baseDate);
+  const opMap = new Map(DEMO_OPERATORS.map(o => [o.id, o]));
+  const machineMap = new Map(DEMO_MACHINES.map(m => [m.id, m]));
+
+  const list: any[] = [];
+  let idCounter = 1;
+
+  for (const r of records) {
+    if (r.level > 0) {
+      const op = opMap.get(r.operatorId);
+      const machine = machineMap.get(r.skillId);
+      const isTrainer = r.level >= 4;
+      list.push({
+        id: `hist-seed-${idCounter++}`,
+        operatorId: r.operatorId,
+        skillId: r.skillId,
+        action: isTrainer ? "PROMOTE" : "CERTIFY",
+        oldLevel: r.level > 1 ? r.level - 1 : 0,
+        newLevel: r.level,
+        oldIssuedOn: r.issuedOn ? addDaysToStr(r.issuedOn, -365) : null,
+        newIssuedOn: r.issuedOn,
+        oldCertifiedUntil: r.certifiedUntil ? addDaysToStr(r.certifiedUntil, -365) : null,
+        newCertifiedUntil: r.certifiedUntil,
+        changedBy: "usr-asha-1",
+        changedByName: "Asha Verma",
+        changedAt: new Date(Date.now() - (idCounter * 14400000)).toISOString(),
+        reason: isTrainer ? "Qualified as Master Trainer" : "Annual competency certification",
+        operator: op,
+        skill: machine,
+      });
+    }
+  }
+
+  // Sort descending by changedAt
+  list.sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime());
+  globalForDemo._demoHistory = list;
+  return globalForDemo._demoHistory;
+}
+
+export function recordDemoHistory(entry: any) {
+  if (!globalForDemo._demoHistory) getDemoHistory(today());
+  const opMap = new Map(DEMO_OPERATORS.map(o => [o.id, o]));
+  const machineMap = new Map(DEMO_MACHINES.map(m => [m.id, m]));
+  globalForDemo._demoHistory!.unshift({
+    id: `hist-mod-${Date.now()}`,
+    changedAt: new Date().toISOString(),
+    changedBy: "usr-asha-1",
+    changedByName: "Asha Verma",
+    operator: opMap.get(entry.operatorId),
+    skill: machineMap.get(entry.skillId),
+    ...entry,
+  });
 }
 
 /**
@@ -270,4 +387,334 @@ export function getDemoAssignments(baseDate = today()) {
   }
 
   return list;
+}
+
+export interface DemoLeaveRequest {
+  id: string;
+  operatorId: string;
+  leaveType: "CASUAL" | "SICK" | "ANNUAL" | "TRAINING";
+  startDate: string;
+  endDate: string;
+  daysCount: number;
+  reason: string;
+  status: "APPROVED" | "PENDING" | "REJECTED";
+  submittedAt: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+}
+
+export interface DemoCertificateSubmission {
+  id: string;
+  operatorId: string;
+  skillId: string;
+  certificateNumber: string;
+  level: number;
+  issuedOn: string;
+  certifiedUntil: string;
+  fileName?: string;
+  notes?: string;
+  status: "VERIFIED" | "PENDING" | "REJECTED";
+  submittedAt: string;
+}
+
+export function getDemoLeaveRequests(operatorId?: string): DemoLeaveRequest[] {
+  if (!globalForDemo._demoLeaveRequests) {
+    const base = today();
+    globalForDemo._demoLeaveRequests = [
+      {
+        id: "leave-101",
+        operatorId: "op-001",
+        leaveType: "CASUAL",
+        startDate: addDaysToStr(base, -14),
+        endDate: addDaysToStr(base, -13),
+        daysCount: 2,
+        reason: "Family wedding in Pune",
+        status: "APPROVED",
+        submittedAt: new Date(Date.now() - 15 * 86400000).toISOString(),
+        reviewedBy: "Rohit Kulkarni",
+        reviewedAt: new Date(Date.now() - 14 * 86400000).toISOString(),
+      },
+      {
+        id: "leave-102",
+        operatorId: "op-001",
+        leaveType: "SICK",
+        startDate: addDaysToStr(base, 5),
+        endDate: addDaysToStr(base, 5),
+        daysCount: 1,
+        reason: "Annual health checkup and eye examination",
+        status: "PENDING",
+        submittedAt: new Date(Date.now() - 86400000).toISOString(),
+      },
+      {
+        id: "leave-103",
+        operatorId: "op-002",
+        leaveType: "ANNUAL",
+        startDate: addDaysToStr(base, 10),
+        endDate: addDaysToStr(base, 14),
+        daysCount: 5,
+        reason: "Festival holiday with family",
+        status: "APPROVED",
+        submittedAt: new Date(Date.now() - 3 * 86400000).toISOString(),
+        reviewedBy: "Asha Verma",
+        reviewedAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+      },
+    ];
+  }
+
+  if (operatorId) {
+    return globalForDemo._demoLeaveRequests.filter((l) => l.operatorId === operatorId);
+  }
+  return globalForDemo._demoLeaveRequests;
+}
+
+export function createDemoLeaveRequest(data: Omit<DemoLeaveRequest, "id" | "submittedAt" | "status">): DemoLeaveRequest {
+  if (!globalForDemo._demoLeaveRequests) getDemoLeaveRequests();
+  const newLeave: DemoLeaveRequest = {
+    ...data,
+    id: `leave-${Date.now()}`,
+    status: "PENDING",
+    submittedAt: new Date().toISOString(),
+  };
+  globalForDemo._demoLeaveRequests!.unshift(newLeave);
+  return newLeave;
+}
+
+export function cancelDemoLeaveRequest(id: string): boolean {
+  if (!globalForDemo._demoLeaveRequests) getDemoLeaveRequests();
+  const idx = globalForDemo._demoLeaveRequests!.findIndex((l) => l.id === id);
+  if (idx !== -1 && globalForDemo._demoLeaveRequests![idx].status === "PENDING") {
+    globalForDemo._demoLeaveRequests!.splice(idx, 1);
+    return true;
+  }
+  return false;
+}
+
+export function reviewDemoLeaveRequest(
+  id: string,
+  status: "APPROVED" | "REJECTED",
+  reviewerName: string,
+  reviewerNotes?: string
+): DemoLeaveRequest | null {
+  if (!globalForDemo._demoLeaveRequests) getDemoLeaveRequests();
+  const leave = globalForDemo._demoLeaveRequests!.find((l) => l.id === id);
+  if (!leave) return null;
+  leave.status = status;
+  leave.reviewedBy = reviewerName;
+  leave.reviewedAt = new Date().toISOString();
+  if (reviewerNotes) {
+    leave.reason = `${leave.reason} [Note: ${reviewerNotes}]`;
+  }
+  return leave;
+}
+
+export function getDemoCertificateSubmissions(operatorId?: string): DemoCertificateSubmission[] {
+  if (!globalForDemo._demoCertificateSubmissions) {
+    const base = today();
+    globalForDemo._demoCertificateSubmissions = [
+      {
+        id: "cert-sub-201",
+        operatorId: "op-001",
+        skillId: "sk-cnc-l1",
+        certificateNumber: "CERT-CNC-2024-001",
+        level: 4,
+        issuedOn: addDaysToStr(base, -365),
+        certifiedUntil: addDaysToStr(base, 730),
+        fileName: "cnc_lathe_master_trainer_ravi.pdf",
+        notes: "Master Trainer certification by Tool Room & Training Centre",
+        status: "VERIFIED",
+        submittedAt: new Date(Date.now() - 30 * 86400000).toISOString(),
+      },
+      {
+        id: "cert-sub-202",
+        operatorId: "op-001",
+        skillId: "sk-qa-8",
+        certificateNumber: "CERT-QA-2025-089",
+        level: 4,
+        issuedOn: addDaysToStr(base, -360),
+        certifiedUntil: addDaysToStr(base, 3), // Expiring soon
+        fileName: "cmm_inspection_l4_cert.pdf",
+        notes: "Zeiss CMM Operator & Trainer Certificate",
+        status: "VERIFIED",
+        submittedAt: new Date(Date.now() - 10 * 86400000).toISOString(),
+      },
+    ];
+  }
+
+  if (operatorId) {
+    return globalForDemo._demoCertificateSubmissions.filter((c) => c.operatorId === operatorId);
+  }
+  return globalForDemo._demoCertificateSubmissions;
+}
+
+export function createDemoCertificateSubmission(
+  data: Omit<DemoCertificateSubmission, "id" | "submittedAt" | "status">
+): DemoCertificateSubmission {
+  if (!globalForDemo._demoCertificateSubmissions) getDemoCertificateSubmissions();
+  const newCert: DemoCertificateSubmission = {
+    ...data,
+    id: `cert-sub-${Date.now()}`,
+    status: "VERIFIED",
+    submittedAt: new Date().toISOString(),
+  };
+  globalForDemo._demoCertificateSubmissions!.unshift(newCert);
+
+  // Also update skill record in the grid
+  updateDemoSkillRecord(data.operatorId, data.skillId, {
+    level: data.level,
+    issuedOn: data.issuedOn,
+    certifiedUntil: data.certifiedUntil,
+    reason: `Certificate submission ${data.certificateNumber}`,
+  });
+
+  return newCert;
+}
+
+export interface DemoAttendanceRecord {
+  id: string;
+  operatorId: string;
+  date: string; // YYYY-MM-DD
+  status: "PRESENT" | "ABSENT" | "ON_LEAVE" | "HALF_DAY" | "LATE";
+  punchInTime: string | null;
+  punchOutTime: string | null;
+  biometricDeviceId: string | null;
+  biometricVerified: boolean;
+  markedBy: string;
+  notes?: string;
+  updatedAt: string;
+}
+
+export function getDemoAttendance(filterDate?: string): DemoAttendanceRecord[] {
+  const currentDate = filterDate || today();
+
+  if (!globalForDemo._demoAttendanceRecords) {
+    const punchTimes = [
+      "05:48 AM", "05:52 AM", "05:55 AM", "05:58 AM", null, // op-005 absent initially
+      "13:42 PM", "13:46 PM", "13:51 PM", "13:55 PM", "13:58 PM",
+      "21:40 PM", "21:45 PM", "21:49 PM", null, "21:58 PM", // op-014 absent initially
+    ];
+
+    globalForDemo._demoAttendanceRecords = DEMO_OPERATORS.map((op, idx) => {
+      const punchIn = punchTimes[idx % punchTimes.length];
+      const isAbsent = punchIn === null;
+      // If op-003 has approved leave on current date or op-008
+      const isOnLeave = op.id === "op-008"; // Deepak Verma on pre-approved leave
+
+      const status: DemoAttendanceRecord["status"] = isOnLeave
+        ? "ON_LEAVE"
+        : isAbsent
+        ? "ABSENT"
+        : "PRESENT";
+
+      return {
+        id: `att-${op.id}-${currentDate}`,
+        operatorId: op.id,
+        date: currentDate,
+        status,
+        punchInTime: status === "PRESENT" ? punchIn : null,
+        punchOutTime: status === "PRESENT" ? (idx < 5 ? "14:02 PM" : null) : null,
+        biometricDeviceId: status === "PRESENT" ? "BioStation 3 - Turnstile Gate #1" : null,
+        biometricVerified: status === "PRESENT",
+        markedBy: status === "PRESENT" ? "BIOMETRIC_DEVICE" : "SYSTEM",
+        notes: isOnLeave ? "Approved medical leave" : isAbsent ? "No biometric punch record detected" : "Biometric RFID punch verified",
+        updatedAt: new Date().toISOString(),
+      };
+    });
+  }
+
+  return globalForDemo._demoAttendanceRecords.filter(
+    (record) => !filterDate || record.date === filterDate
+  );
+}
+
+export function updateDemoAttendance(
+  operatorId: string,
+  status: DemoAttendanceRecord["status"],
+  notes?: string,
+  adminName: string = "Admin"
+): DemoAttendanceRecord {
+  const currentDate = today();
+  if (!globalForDemo._demoAttendanceRecords) getDemoAttendance(currentDate);
+
+  let record = globalForDemo._demoAttendanceRecords!.find(
+    (r) => r.operatorId === operatorId && r.date === currentDate
+  );
+
+  if (!record) {
+    record = {
+      id: `att-${operatorId}-${currentDate}`,
+      operatorId,
+      date: currentDate,
+      status,
+      punchInTime: status === "PRESENT" ? "06:00 AM" : null,
+      punchOutTime: null,
+      biometricDeviceId: null,
+      biometricVerified: false,
+      markedBy: adminName,
+      notes: notes || `Manually marked as ${status} by ${adminName}`,
+      updatedAt: new Date().toISOString(),
+    };
+    globalForDemo._demoAttendanceRecords!.push(record);
+  } else {
+    record.status = status;
+    record.notes = notes || `Status changed to ${status} by ${adminName}`;
+    record.markedBy = adminName;
+    record.updatedAt = new Date().toISOString();
+    if (status === "PRESENT" && !record.punchInTime) {
+      record.punchInTime = "06:00 AM (Manual)";
+    } else if (status === "ABSENT" || status === "ON_LEAVE") {
+      record.punchInTime = null;
+      record.punchOutTime = null;
+    }
+  }
+
+  return record;
+}
+
+export function syncBiometricAttendance(filterDate?: string): {
+  success: boolean;
+  totalSynced: number;
+  presentCount: number;
+  absentCount: number;
+  onLeaveCount: number;
+  device: string;
+  syncedAt: string;
+} {
+  const currentDate = filterDate || today();
+  const records = getDemoAttendance(currentDate);
+
+  // Re-sync with biometric machine punch logs:
+  // Operators who have not punched and are not on leave get set to ABSENT
+  let presentCount = 0;
+  let absentCount = 0;
+  let onLeaveCount = 0;
+
+  for (const record of records) {
+    if (record.status === "ON_LEAVE") {
+      onLeaveCount++;
+    } else if (record.punchInTime) {
+      record.status = "PRESENT";
+      record.biometricVerified = true;
+      record.biometricDeviceId = "BioStation 3 - Turnstile Gate #1";
+      record.markedBy = "BIOMETRIC_DEVICE";
+      record.updatedAt = new Date().toISOString();
+      presentCount++;
+    } else {
+      record.status = "ABSENT";
+      record.biometricVerified = false;
+      record.notes = "No biometric punch record detected at factory turnstile gate";
+      record.markedBy = "BIOMETRIC_DEVICE";
+      record.updatedAt = new Date().toISOString();
+      absentCount++;
+    }
+  }
+
+  return {
+    success: true,
+    totalSynced: records.length,
+    presentCount,
+    absentCount,
+    onLeaveCount,
+    device: "BioStation 3 (Main Gate Turnstiles 1 & 2, IP: 192.168.1.108:4370)",
+    syncedAt: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+  };
 }

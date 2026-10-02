@@ -2,6 +2,7 @@ import { vi } from "vitest";
 
 // Lock timezone to Asia/Kolkata as required by platform rule 18
 process.env.TZ = "Asia/Kolkata";
+process.env.APP_TODAY = "2026-10-02";
 process.env.NEXTAUTH_SECRET = "test-secret-key";
 process.env.SKILLSFORGE_DEV_AUTH = "true";
 process.env.DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/quikit_dev";

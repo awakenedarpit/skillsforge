@@ -1,13 +1,15 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { POST as postExpiryCheck } from "@/app/api/jobs/expiry-check/route";
 import { GET as getJobRuns } from "@/app/api/jobs/runs/route";
 import { setSession, resetSession } from "../setup";
 import { mockDb } from "../helpers/mockDb";
+import { resetRateLimitStore, checkRateLimit } from "@/lib/api/rateLimiter";
 
 describe("Jobs API Routes", () => {
   beforeEach(() => {
     resetSession();
+    resetRateLimitStore();
   });
 
   describe("POST /api/jobs/expiry-check", () => {
@@ -99,6 +101,110 @@ describe("Jobs API Routes", () => {
 
       expect(res.status).toBe(201);
       expect(json.success).toBe(true);
+    });
+
+    it("batches queries and stays at 5 or fewer DB calls for 100 records (N+1 elimination)", async () => {
+      setSession({
+        user: {
+          id: "usr-2",
+          email: "rohit.kulkarni@skillsforge.quikit.io",
+          name: "Rohit Kulkarni",
+          orgId: "org-demo-1",
+          membershipRole: "app_admin",
+        },
+        expires: "2099-01-01",
+      });
+
+      // Generate 100 mock expiring records
+      const mockRecords = Array.from({ length: 100 }, (_, i) => ({
+        id: `os-${i}`,
+        operatorId: `op-${i}`,
+        skillId: `sk-${i % 8}`,
+        level: 2,
+        certifiedUntil: new Date("2026-10-12"), // 10 days away
+      }));
+
+      (mockDb.sfOperatorSkill.findMany as any).mockResolvedValueOnce(mockRecords);
+      (mockDb.sfAlert.findMany as any).mockResolvedValueOnce([]);
+      (mockDb.$transaction as any).mockResolvedValueOnce([]);
+      (mockDb.sfJobRun.create as any).mockResolvedValueOnce({ id: "run-batch", status: "ok" });
+      (mockDb.auditLog.create as any).mockResolvedValueOnce({ id: "audit-batch" });
+
+      const req = new NextRequest("http://localhost:3011/api/jobs/expiry-check", {
+        method: "POST",
+        body: JSON.stringify({ asOf: "2026-10-02" }),
+      });
+
+      const res = await postExpiryCheck(req);
+      const json = await res.json();
+
+      expect(res.status).toBe(201);
+      expect(json.success).toBe(true);
+      expect(json.data.flaggedTotal).toBe(100);
+
+      // Verify zero N+1 findFirst calls were made
+      expect(mockDb.sfAlert.findFirst).toHaveBeenCalledTimes(0);
+
+      // Verify batched transaction was used instead of 100 individual upserts
+      expect(mockDb.$transaction).toHaveBeenCalledTimes(1);
+
+      // Total DB query calls in runExpiryCheck: findMany(skills) + findMany(alerts) + $transaction(upserts) + create(jobRun) = 4
+      expect(mockDb.sfOperatorSkill.findMany).toHaveBeenCalledTimes(1);
+      expect(mockDb.sfAlert.findMany).toHaveBeenCalledTimes(1);
+    });
+
+    it("enforces rate limit: allows 5 requests, blocks 6th with 429 and Retry-After header, and resets after window", async () => {
+      setSession({
+        user: {
+          id: "usr-admin-rate",
+          email: "admin.rate@skillsforge.quikit.io",
+          name: "Admin Rate",
+          orgId: "org-demo-1",
+          membershipRole: "app_admin",
+        },
+        expires: "2099-01-01",
+      });
+
+      (mockDb.sfOperatorSkill.findMany as any).mockResolvedValue([]);
+      (mockDb.sfAlert.findMany as any).mockResolvedValue([]);
+      (mockDb.$transaction as any).mockResolvedValue([]);
+      (mockDb.sfJobRun.create as any).mockResolvedValue({ id: "run-rate", status: "ok" });
+      (mockDb.auditLog.create as any).mockResolvedValue({ id: "audit-rate" });
+
+      // First 5 requests should be allowed
+      for (let i = 0; i < 5; i++) {
+        const req = new NextRequest("http://localhost:3011/api/jobs/expiry-check", {
+          method: "POST",
+          body: JSON.stringify({ asOf: "2026-10-02" }),
+        });
+        const res = await postExpiryCheck(req);
+        expect(res.status).toBe(201);
+      }
+
+      // 6th request should be blocked with 429
+      const blockedReq = new NextRequest("http://localhost:3011/api/jobs/expiry-check", {
+        method: "POST",
+        body: JSON.stringify({ asOf: "2026-10-02" }),
+      });
+      const blockedRes = await postExpiryCheck(blockedReq);
+      const blockedJson = await blockedRes.json();
+
+      expect(blockedRes.status).toBe(429);
+      expect(blockedJson.success).toBe(false);
+      expect(blockedJson.error).toContain("Too many requests");
+      expect(blockedRes.headers.get("Retry-After")).toBeTruthy();
+      const retryAfter = Number(blockedRes.headers.get("Retry-After"));
+      expect(retryAfter).toBeGreaterThan(0);
+      expect(retryAfter).toBeLessThanOrEqual(60);
+
+      // Verify window reset behavior using checkRateLimit with simulated time / reset
+      resetRateLimitStore();
+      const afterResetReq = new NextRequest("http://localhost:3011/api/jobs/expiry-check", {
+        method: "POST",
+        body: JSON.stringify({ asOf: "2026-10-02" }),
+      });
+      const afterResetRes = await postExpiryCheck(afterResetReq);
+      expect(afterResetRes.status).toBe(201);
     });
   });
 

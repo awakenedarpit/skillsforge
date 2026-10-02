@@ -1,18 +1,21 @@
 import {
   MIN_COVERAGE,
   EXPIRY_WINDOW_DAYS,
+  QUALIFIED_MIN_LEVEL,
   formatDateStr,
   parseDate,
   addDaysToStr,
   diffDays,
 } from "./rules";
-import { isQualified, daysToExpiry } from "./qualification";
+import { isQualified, daysToExpiry, effectiveLevel } from "./qualification";
 
 export interface OperatorDomainView {
   id: string;
   name: string;
   shiftId: string;
   isActive: boolean;
+  employeeCode?: string;
+  shift?: { code: string };
 }
 
 export interface SkillDomainView {
@@ -243,6 +246,136 @@ export function forecastCoverage(
   return buildCoverage(operators, skills, shifts, records, futureDate);
 }
 
+export interface CoverageDropItem {
+  skillId: string;
+  skillCode: string;
+  skillName: string;
+  skillNameHi?: string | null;
+  shiftId: string;
+  shiftCode: string;
+  currentCount: number;
+  projectedCount: number;
+  currentStatus: "RED" | "AMBER" | "GREEN";
+  projectedStatus: "RED" | "AMBER" | "GREEN";
+  expiringOperators: Array<{
+    id: string;
+    name: string;
+    level: number;
+    certifiedUntil: string | null;
+  }>;
+}
+
+export interface ShiftCoverageForecastResult {
+  asOf: string;
+  horizonDays: number;
+  projectedDate: string;
+  currentCoverage: CoveragePayload;
+  projectedCoverage: CoveragePayload;
+  dropsBelowMinimum: CoverageDropItem[];
+  worsenedCells: CoverageDropItem[];
+  summary: {
+    totalDropsBelowMinimum: number;
+    totalWorsened: number;
+    skillsAffected: number;
+    shiftsAffected: number;
+  };
+}
+
+/**
+ * Projects coverage changes over a selectable horizon (e.g. 30, 60, 90 days)
+ * based on upcoming certification expiries, reusing buildCoverage and forecastCoverage.
+ */
+export function projectCoverageForecast(
+  operators: OperatorDomainView[],
+  skills: SkillDomainView[],
+  shifts: ShiftDomainView[],
+  records: SkillRecordDomain[],
+  asOf: string,
+  horizonDays: number
+): ShiftCoverageForecastResult {
+  const asOfDateStr = formatDateStr(parseDate(asOf))!;
+  const projectedDate = addDaysToStr(asOfDateStr, horizonDays);
+  const currentCoverage = buildCoverage(operators, skills, shifts, records, asOfDateStr);
+  const projectedCoverage = buildCoverage(operators, skills, shifts, records, projectedDate);
+
+  const skillsMap = new Map(skills.map((s: SkillDomainView) => [s.id, s]));
+  const shiftsMap = new Map(shifts.map((s: ShiftDomainView) => [s.id, s]));
+  const projectedCellsMap = new Map(
+    projectedCoverage.cells.map((c) => [`${c.skillId}_${c.shiftId}`, c])
+  );
+
+  const dropsBelowMinimum: CoverageDropItem[] = [];
+  const worsenedCells: CoverageDropItem[] = [];
+
+  for (const currentCell of currentCoverage.cells) {
+    const projectedCell = projectedCellsMap.get(`${currentCell.skillId}_${currentCell.shiftId}`);
+    if (!projectedCell) continue;
+
+    const skill = skillsMap.get(currentCell.skillId);
+    const shift = shiftsMap.get(currentCell.shiftId);
+    const skillCode = skill?.code || currentCell.skillId;
+    const skillName = skill?.name || currentCell.skillId;
+    const skillNameHi = skill?.nameHi || null;
+    const shiftCode = shift?.code || currentCell.shiftId;
+
+    const currentOpIds = new Set(currentCell.operators.map((o) => o.id));
+    const projectedOpIds = new Set(projectedCell.operators.map((o) => o.id));
+    const expiringOps = currentCell.operators
+      .filter((o) => currentOpIds.has(o.id) && !projectedOpIds.has(o.id))
+      .map((o) => ({
+        id: o.id,
+        name: o.name,
+        level: o.level,
+        certifiedUntil: o.certifiedUntil,
+      }));
+
+    const isDrop = currentCell.status !== "RED" && projectedCell.status === "RED";
+    const isWorsened =
+      STATUS_RANK[projectedCell.status] > STATUS_RANK[currentCell.status] ||
+      projectedCell.qualifiedCount < currentCell.qualifiedCount;
+
+    const dropItem: CoverageDropItem = {
+      skillId: currentCell.skillId,
+      skillCode,
+      skillName,
+      skillNameHi,
+      shiftId: currentCell.shiftId,
+      shiftCode,
+      currentCount: currentCell.qualifiedCount,
+      projectedCount: projectedCell.qualifiedCount,
+      currentStatus: currentCell.status,
+      projectedStatus: projectedCell.status,
+      expiringOperators: expiringOps,
+    };
+
+    if (isDrop) {
+      dropsBelowMinimum.push(dropItem);
+    }
+    if (isWorsened) {
+      worsenedCells.push(dropItem);
+    }
+  }
+
+  const skillsAffected = new Set(dropsBelowMinimum.map((d) => d.skillId)).size;
+  const shiftsAffected = new Set(dropsBelowMinimum.map((d) => d.shiftId)).size;
+
+  return {
+    asOf: asOfDateStr,
+    horizonDays,
+    projectedDate,
+    currentCoverage,
+    projectedCoverage,
+    dropsBelowMinimum,
+    worsenedCells,
+    summary: {
+      totalDropsBelowMinimum: dropsBelowMinimum.length,
+      totalWorsened: worsenedCells.length,
+      skillsAffected,
+      shiftsAffected,
+    },
+  };
+}
+
 const STATUS_RANK: Record<string, number> = { GREEN: 0, AMBER: 1, RED: 2 };
 
 /**
@@ -341,5 +474,280 @@ export function simulateRemoval(
     newlyRed,
     worsened,
     lostAllTrainers,
+  };
+}
+
+export interface ReplacementAlternative {
+  operatorId: string;
+  name: string;
+  employeeCode: string;
+  shiftId: string;
+  shiftCode: string;
+  isSameShift: boolean;
+  level: number;
+  effectiveLevel: number;
+  levelLabel: string;
+  certifiedUntil: string | null;
+  daysToExpiry: number | null;
+  certStatus: "valid" | "expiring_soon" | "expired";
+  recommendationTag: string;
+}
+
+export interface SkillReplacementAnalysis {
+  skillId: string;
+  skillCode: string;
+  skillName: string;
+  skillNameHi?: string | null;
+  lineKey: string;
+  criticality: number;
+  resigningOperatorLevel: number;
+  resigningOperatorLevelLabel: string;
+  sameShiftCount: number;
+  totalQualifiedCount: number;
+  status: "COVERED" | "CROSS_SHIFT_ONLY" | "CRITICAL_UNCOVERED";
+  alternatives: ReplacementAlternative[];
+  trainingCandidates: ReplacementAlternative[];
+}
+
+export interface ReplacementSummary {
+  affectedSkillsCount: number;
+  coveredSameShiftCount: number;
+  crossShiftOnlyCount: number;
+  criticalUncoveredCount: number;
+  totalAlternativesAvailable: number;
+}
+
+export interface ResignationReplacementsResult {
+  summary: ReplacementSummary;
+  replacements: SkillReplacementAnalysis[];
+}
+
+/**
+ * Identifies alternative operators who can take over each machine/skill
+ * currently operated by a departing or resigning operator.
+ */
+export function computeResignationReplacements(
+  operators: OperatorDomainView[],
+  skills: SkillDomainView[],
+  shifts: ShiftDomainView[],
+  records: SkillRecordDomain[],
+  targetOperatorId: string,
+  asOf: string,
+  targetSkillId: string | null = null
+): ResignationReplacementsResult {
+  const asOfDateStr = formatDateStr(parseDate(asOf))!;
+  const targetOp = operators.find((op) => op.id === targetOperatorId);
+  if (!targetOp) {
+    return {
+      summary: {
+        affectedSkillsCount: 0,
+        coveredSameShiftCount: 0,
+        crossShiftOnlyCount: 0,
+        criticalUncoveredCount: 0,
+        totalAlternativesAvailable: 0,
+      },
+      replacements: [],
+    };
+  }
+
+  const shiftsMap = new Map(shifts.map((s) => [s.id, s]));
+  const skillsMap = new Map(skills.map((s) => [s.id, s]));
+  const recordMap = new Map<string, SkillRecordDomain>();
+  for (const r of records) {
+    recordMap.set(`${r.operatorId}_${r.skillId}`, r);
+  }
+
+  // Find all skills that targetOp is qualified for (or targeted skillId)
+  let relevantSkillIds: string[] = [];
+  if (targetSkillId) {
+    relevantSkillIds = [targetSkillId];
+  } else {
+    const opRecords = records.filter((r) => r.operatorId === targetOperatorId);
+    const qualifiedSkillIds = opRecords
+      .filter((r) => r.level >= QUALIFIED_MIN_LEVEL)
+      .map((r) => r.skillId);
+
+    if (qualifiedSkillIds.length > 0) {
+      relevantSkillIds = qualifiedSkillIds;
+    } else {
+      relevantSkillIds = opRecords.map((r) => r.skillId);
+    }
+  }
+
+  // Deduplicate skill IDs
+  relevantSkillIds = Array.from(new Set(relevantSkillIds));
+
+  const otherOps = operators.filter((o) => o.id !== targetOperatorId && o.isActive);
+  const replacements: SkillReplacementAnalysis[] = [];
+
+  for (const sId of relevantSkillIds) {
+    const skill = skillsMap.get(sId);
+    if (!skill) continue;
+
+    const targetRec = recordMap.get(`${targetOperatorId}_${sId}`);
+    const targetLevel = targetRec ? targetRec.level : 0;
+    const targetLevelLabel =
+      targetLevel >= 4
+        ? "Level 4 (Trainer)"
+        : targetLevel === 3
+        ? "Level 3 (Autonomous)"
+        : targetLevel === 2
+        ? "Level 2 (Supervised)"
+        : `Level ${targetLevel}`;
+
+    const qualifiedAlts: ReplacementAlternative[] = [];
+    const trainingCands: ReplacementAlternative[] = [];
+
+    for (const op of otherOps) {
+      const rec = recordMap.get(`${op.id}_${sId}`);
+      if (!rec || rec.level < 1) continue;
+
+      const until = rec.certifiedUntil ? formatDateStr(parseDate(rec.certifiedUntil)) : null;
+      const daysLeft = daysToExpiry(until, asOfDateStr);
+      const isQualifiedNow = isQualified(op.isActive, rec.level, until, asOfDateStr);
+      const effLevel = effectiveLevel(rec.level, until, asOfDateStr);
+      const isSameShift = op.shiftId === targetOp.shiftId;
+      const shiftObj = shiftsMap.get(op.shiftId);
+      const shiftCode = shiftObj?.code || op.shift?.code || op.shiftId;
+      const empCode = op.employeeCode || op.id;
+
+      const certStatus: "valid" | "expiring_soon" | "expired" =
+        daysLeft !== null && daysLeft < 0
+          ? "expired"
+          : daysLeft !== null && daysLeft <= EXPIRY_WINDOW_DAYS
+          ? "expiring_soon"
+          : "valid";
+
+      const levelLabel =
+        rec.level >= 4
+          ? "Level 4 (Trainer)"
+          : rec.level === 3
+          ? "Level 3 (Autonomous)"
+          : rec.level === 2
+          ? "Level 2 (Supervised)"
+          : "Level 1 (In Training)";
+
+      if (rec.level >= 2 && isQualifiedNow) {
+        let recommendationTag = "";
+        if (isSameShift) {
+          if (rec.level >= 4) recommendationTag = "Lead Trainer (Same Shift)";
+          else if (rec.level === 3) recommendationTag = "Ready Now (Same Shift)";
+          else recommendationTag = "Supervised Backup (Same Shift)";
+        } else {
+          if (rec.level >= 4) recommendationTag = "Cross-Shift Trainer";
+          else recommendationTag = "Cross-Shift Transfer";
+        }
+
+        qualifiedAlts.push({
+          operatorId: op.id,
+          name: op.name,
+          employeeCode: empCode,
+          shiftId: op.shiftId,
+          shiftCode,
+          isSameShift,
+          level: rec.level,
+          effectiveLevel: effLevel,
+          levelLabel,
+          certifiedUntil: until,
+          daysToExpiry: daysLeft,
+          certStatus,
+          recommendationTag,
+        });
+      } else if (rec.level === 1) {
+        trainingCands.push({
+          operatorId: op.id,
+          name: op.name,
+          employeeCode: empCode,
+          shiftId: op.shiftId,
+          shiftCode,
+          isSameShift,
+          level: rec.level,
+          effectiveLevel: effLevel,
+          levelLabel,
+          certifiedUntil: until,
+          daysToExpiry: daysLeft,
+          certStatus,
+          recommendationTag: isSameShift
+            ? "In Training (Same Shift) - Fast-Track"
+            : "In Training (Cross-Shift) - Fast-Track",
+        });
+      }
+    }
+
+    // Sort qualified alternatives:
+    // 1. Same shift first
+    // 2. Higher effective level
+    // 3. Cert freshness (non-expiring > expiring soon)
+    // 4. Alphabetical by name
+    qualifiedAlts.sort((a, b) => {
+      if (a.isSameShift !== b.isSameShift) return a.isSameShift ? -1 : 1;
+      if (a.effectiveLevel !== b.effectiveLevel) return b.effectiveLevel - a.effectiveLevel;
+      const aExp = a.certStatus === "expiring_soon" ? 1 : 0;
+      const bExp = b.certStatus === "expiring_soon" ? 1 : 0;
+      if (aExp !== bExp) return aExp - bExp;
+      return a.name.localeCompare(b.name);
+    });
+
+    trainingCands.sort((a, b) => {
+      if (a.isSameShift !== b.isSameShift) return a.isSameShift ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    const sameShiftCount = qualifiedAlts.filter((a) => a.isSameShift).length;
+    const totalQualifiedCount = qualifiedAlts.length;
+
+    let status: "COVERED" | "CROSS_SHIFT_ONLY" | "CRITICAL_UNCOVERED" = "CRITICAL_UNCOVERED";
+    if (sameShiftCount > 0) {
+      status = "COVERED";
+    } else if (totalQualifiedCount > 0) {
+      status = "CROSS_SHIFT_ONLY";
+    }
+
+    replacements.push({
+      skillId: sId,
+      skillCode: skill.code,
+      skillName: skill.name,
+      skillNameHi: skill.nameHi || null,
+      lineKey: skill.lineKey || "GENERAL",
+      criticality: skill.criticality || 2,
+      resigningOperatorLevel: targetLevel,
+      resigningOperatorLevelLabel: targetLevelLabel,
+      sameShiftCount,
+      totalQualifiedCount,
+      status,
+      alternatives: qualifiedAlts,
+      trainingCandidates: trainingCands,
+    });
+  }
+
+  // Sort replacements: critical uncovered first, then cross shift only, then covered, then by criticality desc
+  const statusPriority: Record<string, number> = {
+    CRITICAL_UNCOVERED: 0,
+    CROSS_SHIFT_ONLY: 1,
+    COVERED: 2,
+  };
+  replacements.sort((a, b) => {
+    const prioDiff = statusPriority[a.status] - statusPriority[b.status];
+    if (prioDiff !== 0) return prioDiff;
+    return b.criticality - a.criticality;
+  });
+
+  const coveredSameShiftCount = replacements.filter((r) => r.status === "COVERED").length;
+  const crossShiftOnlyCount = replacements.filter((r) => r.status === "CROSS_SHIFT_ONLY").length;
+  const criticalUncoveredCount = replacements.filter((r) => r.status === "CRITICAL_UNCOVERED").length;
+  const totalAlternativesAvailable = replacements.reduce(
+    (sum, r) => sum + r.totalQualifiedCount,
+    0
+  );
+
+  return {
+    summary: {
+      affectedSkillsCount: replacements.length,
+      coveredSameShiftCount,
+      crossShiftOnlyCount,
+      criticalUncoveredCount,
+      totalAlternativesAvailable,
+    },
+    replacements,
   };
 }

@@ -46,8 +46,9 @@ export const GET = withOrgAuth(async (req, ctx) => {
       ...(q
         ? {
             OR: [
-              { name: { contains: q, mode: "insensitive" } },
-              { code: { contains: q, mode: "insensitive" } },
+              // SQLite does not support mode: "insensitive"; use lowercase for case-insensitive LIKE
+              { name: { contains: q.toLowerCase() } },
+              { code: { contains: q.toLowerCase() } },
             ],
           }
         : {}),

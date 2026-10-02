@@ -24,6 +24,8 @@ import {
   CheckCircle2,
   Trash2,
   Filter,
+  Search,
+  Download,
 } from "lucide-react";
 
 interface GridOperator {
@@ -31,7 +33,7 @@ interface GridOperator {
   employeeCode: string;
   name: string;
   shiftId: string;
-  shift: { code: string };
+  shift?: { code: string };
 }
 
 interface GridSkill {
@@ -68,12 +70,20 @@ interface GridCellData {
   } | null;
 }
 
+interface GridPagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
 interface GridPayload {
   asOf: string;
   shifts: GridShift[];
   skills: GridSkill[];
   operators: GridOperator[];
   matrix: Record<string, Record<string, GridCellData>>;
+  pagination?: GridPagination;
 }
 
 export default function SkillGridPage() {
@@ -84,6 +94,11 @@ export default function SkillGridPage() {
   const userCanEdit = canEditSkillGrid(userRole);
 
   const [shiftFilter, setShiftFilter] = useState<string>("all");
+  const [operatorSearch, setOperatorSearch] = useState<string>("");
+  const [lineFilter, setLineFilter] = useState<string>("all");
+  const [showGuide, setShowGuide] = useState<boolean>(true);
+  const [page, setPage] = useState<number>(1);
+  const [pageSize] = useState<number>(50);
   const [selectedCellForHistory, setSelectedCellForHistory] = useState<{
     operatorId: string;
     operatorName: string;
@@ -93,12 +108,14 @@ export default function SkillGridPage() {
 
   // Fetch Grid Data
   const { data, isLoading, error } = useQuery<GridPayload>({
-    queryKey: ["grid", shiftFilter],
+    queryKey: ["grid", shiftFilter, page, pageSize],
     queryFn: async () => {
       const url = new URL("/api/grid", window.location.origin);
       if (shiftFilter !== "all") {
         url.searchParams.set("shiftId", shiftFilter);
       }
+      url.searchParams.set("page", String(page));
+      url.searchParams.set("pageSize", String(pageSize));
       const res = await fetch(url.toString());
       const json = await res.json();
       if (!json.success) throw new Error(json.error || "Failed to load grid");
@@ -220,6 +237,19 @@ export default function SkillGridPage() {
     machineTallies[sk.id] = count;
   }
 
+  // Filter skills by Line
+  const displayedSkills = skills.filter((sk) => {
+    if (lineFilter !== "all" && sk.lineKey !== lineFilter) return false;
+    return true;
+  });
+
+  // Filter operators by search
+  const displayedOperators = operators.filter((op) => {
+    if (!operatorSearch.trim()) return true;
+    const q = operatorSearch.toLowerCase();
+    return op.name.toLowerCase().includes(q) || op.employeeCode.toLowerCase().includes(q);
+  });
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto select-none">
       {/* Page Title & Shift Filter */}
@@ -234,14 +264,97 @@ export default function SkillGridPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const exportUrl = new URL("/api/grid/export", window.location.origin);
+              if (shiftFilter !== "all") {
+                exportUrl.searchParams.set("shiftId", shiftFilter);
+              }
+              window.open(exportUrl.toString(), "_blank");
+            }}
+            className="flex items-center gap-1.5"
+          >
+            <Download className="w-4 h-4" />
+            {t("grid.exportCsv")}
+          </Button>
+
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-slate-400" />
             <Segmented
               options={shiftOptions}
               value={shiftFilter}
-              onChange={(val) => setShiftFilter(val)}
+              onChange={(val) => {
+                setShiftFilter(val);
+                setPage(1);
+              }}
             />
           </div>
+        </div>
+      </div>
+
+      {/* Friendly Guide Banner */}
+      {showGuide && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800/80 dark:to-slate-850/60 border border-blue-200/80 dark:border-slate-700/80 rounded-2xl p-4 sm:p-5 shadow-sm relative">
+          <button
+            onClick={() => setShowGuide(false)}
+            className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 text-xs px-2 py-1 rounded-md"
+          >
+            ✕ {locale === "hi" ? "छिपाएं" : "Dismiss"}
+          </button>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="w-6 h-6 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+              💡
+            </span>
+            <span className="text-xs font-bold text-blue-900 dark:text-blue-200 uppercase tracking-wider">
+              {t("gridHelper.howItWorks")}
+            </span>
+          </div>
+          <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed max-w-4xl">
+            {t("gridHelper.howItWorksDesc")}
+          </p>
+        </div>
+      )}
+
+      {/* Search & Line Filters */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={operatorSearch}
+            onChange={(e) => setOperatorSearch(e.target.value)}
+            placeholder={t("gridHelper.searchPlaceholder")}
+            className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-xs text-slate-500 mr-1 font-medium">{t("gridHelper.filterLine")}:</span>
+          {["all", "MACHINING", "FORMING", "JOINING", "FINISHING"].map((lk) => (
+            <button
+              key={lk}
+              type="button"
+              onClick={() => setLineFilter(lk)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                lineFilter === lk
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400"
+              }`}
+            >
+              {lk === "all" ? t("gridHelper.allLines") : t(`lines.${lk}`)}
+            </button>
+          ))}
+          {!showGuide && (
+            <button
+              type="button"
+              onClick={() => setShowGuide(true)}
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline ml-2"
+            >
+              ℹ️ {locale === "hi" ? "मार्गदर्शिका" : "Show Guide"}
+            </button>
+          )}
         </div>
       </div>
 
@@ -303,9 +416,9 @@ export default function SkillGridPage() {
             <thead className="bg-slate-50 dark:bg-slate-800/80 sticky top-0 z-30 shadow-sm">
               <tr>
                 <th className="p-3.5 font-semibold text-slate-700 dark:text-slate-200 border-b border-r border-slate-200 dark:border-slate-800 sticky left-0 bg-slate-100 dark:bg-slate-800 z-40 min-w-[190px]">
-                  {t("common.operator")} ({operators.length})
+                  {t("common.operator")} ({displayedOperators.length})
                 </th>
-                {skills.map((skill) => (
+                {displayedSkills.map((skill) => (
                   <th
                     key={skill.id}
                     className="p-3 text-center border-b border-r border-slate-200 dark:border-slate-800 min-w-[110px]"
@@ -333,7 +446,7 @@ export default function SkillGridPage() {
                 <td className="p-2.5 font-semibold text-slate-600 dark:text-slate-400 sticky left-0 bg-slate-100 dark:bg-slate-800 z-40 border-r border-slate-200 dark:border-slate-800">
                   {t("heatmap.total")} (Lvl 2+)
                 </td>
-                {skills.map((skill) => {
+                {displayedSkills.map((skill) => {
                   const count = machineTallies[skill.id] || 0;
                   const isRed = count < 2;
                   return (
@@ -357,7 +470,7 @@ export default function SkillGridPage() {
 
             {/* Table Body */}
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {operators.map((op) => {
+              {displayedOperators.map((op) => {
                 const rowTally = operatorTallies[op.id] || 0;
 
                 return (
@@ -375,13 +488,13 @@ export default function SkillGridPage() {
                           {op.employeeCode}
                         </span>
                         <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded font-medium">
-                          {t("common.shift")} {op.shift.code}
+                          {t("common.shift")} {op.shift?.code || op.shiftId?.slice(-1)?.toUpperCase() || "A"}
                         </span>
                       </div>
                     </td>
 
                     {/* Skill Cells */}
-                    {skills.map((skill) => {
+                    {displayedSkills.map((skill) => {
                       const cell = matrix[op.id]?.[skill.id] || {
                         operatorId: op.id,
                         skillId: skill.id,
@@ -444,6 +557,37 @@ export default function SkillGridPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {data?.pagination && data.pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+            <div className="text-xs text-slate-500">
+              {t("common.showingPage", {
+                page: data.pagination.page,
+                total: data.pagination.totalPages,
+                count: data.pagination.total,
+              })}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={data.pagination.page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                {t("common.previous")}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={data.pagination.page >= data.pagination.totalPages}
+                onClick={() => setPage((p) => Math.min(data.pagination!.totalPages, p + 1))}
+              >
+                {t("common.next")}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* SlidePanel for Cell History */}

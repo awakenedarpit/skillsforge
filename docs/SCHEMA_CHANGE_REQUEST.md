@@ -8,7 +8,7 @@
 ---
 
 ## 1. Summary of Changes
-Introducing models for **PS 22 SkillsForge** under schema `app_skillsforge` prefixed with `Sf`.
+Introducing models for **SkillsForge** under schema `app_skillsforge` prefixed with `Sf`.
 
 | Model | Schema | Purpose |
 |---|---|---|

@@ -1,16 +1,13 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["multiSchema"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL_DIRECT")
-  schemas   = ["public", "app_skillsforge"]
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
-// ── Platform Stand-in Models (public schema) ──
+// ── Platform Stand-in Models ──
 
 model Org {
   id        String   @id @default(cuid())
@@ -29,8 +26,6 @@ model Org {
   alerts       SfAlert[]
   jobRuns      SfJobRun[]
   assignments  SfAssignment[]
-
-  @@schema("public")
 }
 
 model User {
@@ -42,8 +37,6 @@ model User {
 
   memberships OrgMember[]
   appAccess   UserAppAccess[]
-
-  @@schema("public")
 }
 
 model OrgMember {
@@ -59,7 +52,6 @@ model OrgMember {
 
   @@unique([orgId, userId])
   @@index([orgId])
-  @@schema("public")
 }
 
 model UserAppAccess {
@@ -74,7 +66,6 @@ model UserAppAccess {
 
   @@unique([orgId, userId, appId])
   @@index([orgId])
-  @@schema("public")
 }
 
 model AuditLog {
@@ -91,10 +82,9 @@ model AuditLog {
 
   @@index([orgId])
   @@index([orgId, entityType, entityId])
-  @@schema("public")
 }
 
-// ── SkillsForge Domain Models (app_skillsforge schema) ──
+// ── SkillsForge Domain Models ──
 
 model SfShift {
   id        String   @id @default(cuid())
@@ -113,7 +103,6 @@ model SfShift {
 
   @@unique([orgId, code])
   @@index([orgId])
-  @@schema("app_skillsforge")
 }
 
 model SfOperator {
@@ -123,7 +112,7 @@ model SfOperator {
   name         String
   shiftId      String
   isActive     Boolean   @default(true)
-  leftOn       DateTime? @db.Date
+  leftOn       DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   createdBy    String?
@@ -139,7 +128,6 @@ model SfOperator {
   @@index([orgId])
   @@index([orgId, shiftId])
   @@index([orgId, isActive])
-  @@schema("app_skillsforge")
 }
 
 model SfSkill {
@@ -164,7 +152,6 @@ model SfSkill {
   @@unique([orgId, code])
   @@index([orgId])
   @@index([orgId, lineKey])
-  @@schema("app_skillsforge")
 }
 
 model SfOperatorSkill {
@@ -173,8 +160,8 @@ model SfOperatorSkill {
   operatorId     String
   skillId        String
   level          Int       // 0 to 4
-  issuedOn       DateTime? @db.Date
-  certifiedUntil DateTime? @db.Date
+  issuedOn       DateTime?
+  certifiedUntil DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   createdBy      String?
@@ -188,7 +175,6 @@ model SfOperatorSkill {
   @@index([orgId])
   @@index([orgId, skillId])
   @@index([orgId, certifiedUntil])
-  @@schema("app_skillsforge")
 }
 
 model SfSkillHistory {
@@ -199,14 +185,14 @@ model SfSkillHistory {
   action            String    // CREATE | UPDATE | DELETE | SEED
   oldLevel          Int?
   newLevel          Int?
-  oldIssuedOn       DateTime? @db.Date
-  newIssuedOn       DateTime? @db.Date
-  oldCertifiedUntil DateTime? @db.Date
-  newCertifiedUntil DateTime? @db.Date
+  oldIssuedOn       DateTime?
+  newIssuedOn       DateTime?
+  oldCertifiedUntil DateTime?
+  newCertifiedUntil DateTime?
   changedBy         String
   changedByName     String?
   changedAt         DateTime  @default(now())
-  reason            String?   @db.Text
+  reason            String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   createdBy         String?
@@ -217,7 +203,6 @@ model SfSkillHistory {
   @@index([orgId])
   @@index([orgId, operatorId, skillId, changedAt])
   @@index([orgId, changedAt])
-  @@schema("app_skillsforge")
 }
 
 model SfAlert {
@@ -225,7 +210,7 @@ model SfAlert {
   orgId          String
   operatorId     String
   skillId        String
-  certifiedUntil DateTime  @db.Date
+  certifiedUntil DateTime
   severity       String    // expired | critical | warning | notice
   daysRemaining  Int
   status         String    @default("open") // open | resolved
@@ -233,6 +218,7 @@ model SfAlert {
   lastCheckedAt  DateTime
   resolvedAt     DateTime?
   resolvedReason String?   // renewed | level_lowered | record_removed | operator_inactive
+  notifiedAt     DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   createdBy      String?
@@ -245,7 +231,6 @@ model SfAlert {
   @@unique([orgId, operatorId, skillId, certifiedUntil])
   @@index([orgId])
   @@index([orgId, status, severity])
-  @@schema("app_skillsforge")
 }
 
 model SfJobRun {
@@ -253,7 +238,7 @@ model SfJobRun {
   orgId         String
   jobName       String    // e.g. "expiry_check"
   triggeredBy   String    // scheduler | manual | external | stale_catchup
-  asOfDate      DateTime  @db.Date
+  asOfDate      DateTime
   startedAt     DateTime  @default(now())
   finishedAt    DateTime?
   status        String    // ok | error
@@ -270,7 +255,6 @@ model SfJobRun {
 
   @@index([orgId])
   @@index([orgId, jobName, startedAt])
-  @@schema("app_skillsforge")
 }
 
 model SfAssignment {
@@ -279,10 +263,10 @@ model SfAssignment {
   operatorId     String
   skillId        String
   shiftId        String
-  assignmentDate DateTime @db.Date
+  assignmentDate DateTime
   status         String   // accepted | rejected
   verdict        String   // green | red
-  reasonsJson    Json?
+  reasonsJson    String?
   assignedBy     String
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -295,7 +279,8 @@ model SfAssignment {
   shift    SfShift    @relation(fields: [shiftId], references: [id])
 
   @@index([orgId])
+  @@index([orgId, assignmentDate])
+  @@index([assignmentDate])
   @@index([orgId, operatorId, assignmentDate])
   @@index([orgId, skillId, assignmentDate])
-  @@schema("app_skillsforge")
 }

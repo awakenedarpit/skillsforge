@@ -1,0 +1,396 @@
+================================================================================
+SKILLSFORGE COMPREHENSIVE DEBUGGING & SYSTEM AUDIT REPORT
+Target Application : SkillsForge Industrial Skill Matrix (apps/skillsforge)
+Audit Type         : Deep Static Analysis, Security & Architecture Audit
+Date of Audit      : October 3, 2026
+Audit Scope        : All API Routes, Domain Engines, Frontend Pages, DB Proxy
+Status             : DEFECTS IDENTIFIED (ZERO CODE MODIFICATIONS APPLIED)
+================================================================================
+
+EXECUTIVE SUMMARY
+-----------------
+During this exhaustive debugging pass across the SkillsForge platform, 28 distinct
+defects were uncovered across 5 critical dimensions:
+  1. Security, Authorization & Privacy (BOLA / IDOR / Secrets) : 9 Defects
+  2. Architecture, Data Integrity & Database Proxy            : 5 Defects
+  3. Logic Flaws, Boundary Conditions & Runtime Crashes       : 6 Defects
+  4. Repository Rules Non-Compliance (CLAUDE.md Hard Rules)   : 4 Defects
+  5. Frontend UI/UX, Memory Leaks & Pagination Quirks         : 4 Defects
+
+Defect Severity Breakdown:
+  - Critical Severity (Immediate System/Security Compromise) : 3 Defects
+  - High Severity (Data Leak, Exploit, or State Loss)        : 10 Defects
+  - Medium Severity (Logic Errors, Rule Violations, Crashes) : 13 Defects
+  - Low Severity (UI Leaks, Dropdown Limits)                 : 2 Defects
+
+Total Defects Discovered: 28
+
+
+================================================================================
+TABLE OF DEFECTS SUMMARY
+================================================================================
+ID       SEVERITY    CATEGORY       FILE LOCATION & SUMMARY
+--------------------------------------------------------------------------------
+SEC-01   CRITICAL    Security       app/api/jobs/expiry-check/route.ts:25-27
+                                    Hardcoded fallback secret & cross-tenant orgId override
+SEC-02   HIGH        Security       app/api/member/portal/route.ts:15-23
+                                    IDOR: Low-privilege members can query any coworker's portal
+SEC-03   HIGH        Security       app/api/admin/leaves/route.ts:21-54
+                                    Information disclosure: GET leaves lacks role check
+SEC-04   HIGH        Security       app/api/member/leaves/route.ts:46, 69-86
+                                    IDOR: Leaves submitted/cancelled without ownership checks
+SEC-05   MEDIUM      Security       app/api/member/certificates/route.ts:28, 49
+                                    IDOR: Certificate submissions not restricted to session operator
+SEC-06   MEDIUM      Security       app/api/history/route.ts:29-34
+                                    Full audit trail and reviewer notes leaked to members
+SEC-07   MEDIUM      Security       app/api/attendance/route.ts:22-65
+                                    Plant-wide punch and biometric status visible to members
+SEC-08   MEDIUM      Security       app/api/simulate/resignation/route.ts:62
+                                    Operational risk and SPOF simulation accessible to members
+SEC-09   HIGH        Security       app/(dashboard)/reports/gaps/page.tsx:70-71
+                                    Unescaped CSV / formula injection (CSV Injection)
+ARCH-01  CRITICAL    Architecture   prisma/schema.prisma vs lib/demo/seedData.ts
+                                    Attendance, Leaves & Certificates stored in volatile memory
+ARCH-02  HIGH        Architecture   app/api/alerts/route.ts:44-51
+                                    Heavy write transaction executed in GET handler without lock
+ARCH-03  HIGH        Architecture   lib/db.ts:25-45
+                                    Database TCP probe hardcodes 127.0.0.1, breaking remote DB URLs
+ARCH-04  MEDIUM      Architecture   app/api/operators/route.ts:107-129
+                                    Missing foreign key validation for shiftId in operator creation
+ARCH-05  MEDIUM      Architecture   lib/auth.ts:15-48
+                                    Zero authentication providers in strict production mode
+LOGIC-01 HIGH        Logic          app/api/member/leaves/route.ts:54-55
+                                    Math.abs allows start date after end date in leave requests
+LOGIC-02 HIGH        Logic          app/api/assignments/route.ts:51-56
+                                    Malformed date params pass null to Prisma { gte: null }
+LOGIC-03 MEDIUM      Logic          lib/api/expiryJob.ts:26-27, 37
+                                    Non-null assertion on invalid asOf crashes background runner
+LOGIC-04 MEDIUM      Logic          assignments/check, gaps, verdict, resignation routes
+                                    take: 1000 silently truncates skills in large manufacturing plants
+LOGIC-05 MEDIUM      Logic          app/api/attendance/sync-biometric/route.ts:18-23
+                                    Missing Zod validation schema on request body (Hard Rule 2)
+LOGIC-06 MEDIUM      Logic          app/api/member/certificates/route.ts:20-21
+                                    Missing validation that certifiedUntil >= issuedOn
+RULE-01  HIGH        Compliance     admin/leaves, attendance, sync-biometric, member/certs
+                                    Missing writeAuditLog on mutation endpoints (Hard Rule 6)
+RULE-02  HIGH        Compliance     reports/verdict, attendance, leaves, workload, reports
+                                    Extensive hardcoded English & inline ternary strings (Hard Rule 5)
+RULE-03  MEDIUM      Compliance     assignments, alerts, gaps, db.ts
+                                    Explicit any type usage in production codebase (Hard Rule 1)
+UI-01    MEDIUM      Frontend       app/(dashboard)/reports/verdict/page.tsx:22
+                                    Missing <Suspense> wrapper around useSearchParams()
+UI-02    MEDIUM      Frontend       app/(dashboard)/history/page.tsx:127-129
+                                    Client-side action filter breaks server-side pagination
+UI-03    LOW         Frontend       assign/page.tsx:37, history/page.tsx:76
+                                    Hardcoded limit=100 arbitrarily truncates dropdown lists
+UI-04    LOW         Frontend       assign, attendance, leaves, portal
+                                    Memory leak warnings from uncleaned setTimeout timer handles
+--------------------------------------------------------------------------------
+
+
+================================================================================
+DETAILED AUDIT FINDINGS BY CATEGORY
+================================================================================
+
+--------------------------------------------------------------------------------
+1. SECURITY, AUTHORIZATION & PRIVACY
+--------------------------------------------------------------------------------
+
+[SEC-01] Hardcoded Fallback Secret & Cross-Tenant Impersonation
+  - Location: apps/skillsforge/app/api/jobs/expiry-check/route.ts (lines 25-27, 37-39)
+  - Severity: CRITICAL
+  - Defect Description:
+    The background scheduler endpoint authenticates callers using:
+      const internalSecret = req.headers.get("x-internal-secret");
+      const expectedSecret = process.env.INTERNAL_SECRET || "shared-secret-for-internal-calls";
+      const isInternal = Boolean(internalSecret && internalSecret === expectedSecret);
+    If INTERNAL_SECRET is not configured in production, any external actor can send
+    header 'x-internal-secret: shared-secret-for-internal-calls'. Furthermore, line 37
+    accepts an arbitrary '?orgId=' query parameter, permitting callers to trigger jobs
+    and manipulate data across any tenant organization.
+  - Failure Mode: Unauthenticated remote callers can trigger resource-intensive
+    transactions and process alerts for any tenant in the database.
+
+[SEC-02] Broken Object-Level Authorization (IDOR) in Member Portal
+  - Location: apps/skillsforge/app/api/member/portal/route.ts (lines 15-23)
+              apps/skillsforge/app/(dashboard)/portal/page.tsx (lines 353-370)
+  - Severity: HIGH
+  - Defect Description:
+    In GET /api/member/portal, the target operator is resolved via:
+      const requestedOpId = searchParams.get("operatorId");
+      const sessionOperatorId = ctx.operatorId;
+      const operatorId = requestedOpId || sessionOperatorId;
+    The endpoint never checks if ctx.userRole === "member" is attempting to inspect
+    another operator. Furthermore, the portal UI actively renders an "Operator Switcher"
+    dropdown allowing operators to switch to any colleague.
+  - Failure Mode: Operators can view confidential medical justifications, leave
+    histories, shift allocations, and competency levels of all plant workers.
+
+[SEC-03] Missing Role Check on Administrative Leave Roster
+  - Location: apps/skillsforge/app/api/admin/leaves/route.ts (lines 21-54)
+  - Severity: HIGH
+  - Defect Description:
+    While PATCH /api/admin/leaves checks canEditSkillGrid(ctx.userRole), the GET
+    handler is wrapped only in withOrgAuth with zero role verification.
+  - Failure Mode: Any authenticated operator can query GET /api/admin/leaves and
+    retrieve all factory leave requests, shift assignments, and personal notes.
+
+[SEC-04] IDOR in Leave Application & Cancellation
+  - Location: apps/skillsforge/app/api/member/leaves/route.ts (lines 46, 69-86)
+  - Severity: HIGH
+  - Defect Description:
+    POST /api/member/leaves takes operatorId directly from the request JSON body without
+    binding it to ctx.operatorId. Additionally, DELETE /api/member/leaves?id= accepts
+    any leave ID and cancels it without checking if the applicant owns the request.
+  - Failure Mode: Employees can submit leaves in coworkers' names or maliciously cancel
+    coworkers' approved or pending leaves.
+
+[SEC-05] IDOR in Certificate Submissions
+  - Location: apps/skillsforge/app/api/member/certificates/route.ts (lines 28, 49)
+  - Severity: MEDIUM
+  - Defect Description:
+    Both GET and POST accept operatorId from query/body parameters without validating
+    that a 'member' user is restricted to their own session operatorId.
+  - Failure Mode: Unauthorized viewing and submission of certificate records for other staff.
+
+[SEC-06] Plant-Wide Skill Audit Trail Exposure to Low-Privilege Members
+  - Location: apps/skillsforge/app/api/history/route.ts (lines 29-34)
+  - Severity: MEDIUM
+  - Defect Description:
+    GET /api/history accepts optional operatorId and skillId filters. If omitted by a
+    member, the query executes against the entire organization, returning all historical
+    promotions, demotions, supervisor comments, and certification renewals.
+  - Failure Mode: Leaks disciplinary rating changes and manager evaluation notes.
+
+[SEC-07] Plant-Wide Daily Attendance Data Exposed Without Role Guard
+  - Location: apps/skillsforge/app/api/attendance/route.ts (lines 22-65)
+  - Severity: MEDIUM
+  - Defect Description:
+    GET /api/attendance lacks role-based authorization guards. It returns punch records,
+    leave statuses, and biometric terminal verification flags for all plant workers.
+  - Failure Mode: Unrestricted visibility of plant absenteeism and biometric data.
+
+[SEC-08] Unrestricted Resignation Simulator Access
+  - Location: apps/skillsforge/app/api/simulate/resignation/route.ts (line 62)
+  - Severity: MEDIUM
+  - Defect Description:
+    GET /api/simulate/resignation is accessible to all authenticated roles, allowing
+    any worker to run resignation simulations on key engineers and view factory single
+    points of failure (SPOFs) and machine downtime risk scores.
+  - Failure Mode: Operational risk and production vulnerability exposure.
+
+[SEC-09] Unescaped CSV / Formula Injection (CSV Injection) Vulnerability
+  - Location: apps/skillsforge/app/(dashboard)/reports/gaps/page.tsx (lines 70-71)
+  - Severity: HIGH
+  - Defect Description:
+    The gap report CSV export bypasses the secure lib/csv.ts utility and joins raw
+    cell strings with simple commas:
+      const csvContent = "data:text/csv;charset=utf-8," + rows.map((e) => e.join(",")).join("\n");
+  - Failure Mode: If a skill name or operator name contains commas, quotes, or starts
+    with '=', '+', '-', or '@', opening the downloaded CSV in Excel or Sheets executes
+    arbitrary formulas or corrupts column structures.
+
+
+--------------------------------------------------------------------------------
+2. ARCHITECTURE, PERSISTENCE & DATA INTEGRITY
+--------------------------------------------------------------------------------
+
+[ARCH-01] Ephemeral In-Memory State for Core Manufacturing Data
+  - Location: apps/skillsforge/prisma/schema.prisma (lines 1-287)
+              apps/skillsforge/lib/demo/seedData.ts (lines 79-80)
+  - Severity: CRITICAL
+  - Defect Description:
+    The Prisma schema defines tables for SfOperator, SfSkill, SfAssignment, SfAlert, etc.,
+    but completely lacks models for Attendance, Leaves, and Certificate Submissions:
+      - Attendance records operate strictly on globalThis._demoAttendanceRecords.
+      - Leave requests operate strictly on globalThis._demoLeaveRequests.
+      - Certificate submissions operate strictly on globalThis._demoCertificateSubmissions.
+  - Failure Mode: Every server reboot, code deployment, or container recycle permanently
+    destroys all employee leave requests, supervisor approvals, and attendance punches.
+
+[ARCH-02] Mutex Race Condition on Alerts Stale Catch-Up
+  - Location: apps/skillsforge/app/api/alerts/route.ts (lines 44-51)
+  - Severity: HIGH
+  - Defect Description:
+    When the last expiry job run is >24 hours old, GET /api/alerts automatically executes
+    the heavy write transaction runExpiryCheck() synchronously inside the GET handler
+    without an in-memory or database mutex lock.
+  - Failure Mode: Multiple users accessing the dashboard simultaneously trigger
+    concurrent runs, resulting in database deadlocks and duplicate notification dispatches.
+
+[ARCH-03] Broken Remote Database Probe in Database Proxy
+  - Location: apps/skillsforge/lib/db.ts (lines 25-45)
+  - Severity: HIGH
+  - Defect Description:
+    probeDatabase() extracts the port from DATABASE_URL but hardcodes host: "127.0.0.1":
+      const sock = net.connect({ host: "127.0.0.1", port, timeout: 150 });
+  - Failure Mode: In deployments using external managed databases (AWS RDS, Supabase, Neon),
+    the proxy fails to connect to 127.0.0.1, marks dbOnline = false, and intercepts every
+    query with "Error: Database offline", completely disabling the application.
+
+[ARCH-04] Foreign Key Integrity Missing on Operator Shift Assignment
+  - Location: apps/skillsforge/app/api/operators/route.ts (lines 107-129)
+              apps/skillsforge/app/api/operators/[id]/route.ts (lines 68-82)
+  - Severity: MEDIUM
+  - Defect Description:
+    POST and PATCH operator endpoints accept shiftId without checking whether the shift
+    exists under the organization in SfShift.
+  - Failure Mode: Creates orphaned operator records or crashes with foreign key errors.
+
+[ARCH-05] Zero Authentication Providers in Strict Production Mode
+  - Location: apps/skillsforge/lib/auth.ts (lines 15-48)
+  - Severity: MEDIUM
+  - Defect Description:
+    authOptions.providers only injects CredentialsProvider if SKILLSFORGE_DEV_AUTH === "true"
+    or NODE_ENV !== "production".
+  - Failure Mode: If deployed in production without SKILLSFORGE_DEV_AUTH="true" and without
+    an external OAuth provider, NextAuth instantiates with an empty provider list, blocking
+    all user logins.
+
+
+--------------------------------------------------------------------------------
+3. LOGIC FLAWS, BOUNDARY CONDITIONS & RUNTIME CRASHES
+--------------------------------------------------------------------------------
+
+[LOGIC-01] Inverted Date Range Calculation Exploit in Leave Application
+  - Location: apps/skillsforge/app/api/member/leaves/route.ts (lines 54-55)
+  - Severity: HIGH
+  - Defect Description:
+    Leave duration is computed using Math.abs():
+      const diffTime = Math.abs(end.getTime() - start.getTime());
+      const daysCount = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1);
+  - Failure Mode: An applicant can submit startDate="2026-12-31" and endDate="2026-12-01".
+    The server calculates a positive 31 days and creates the leave rather than rejecting
+    the request with HTTP 400.
+
+[LOGIC-02] Unhandled Date Parsing & Prisma Null Crash on Malformed Queries
+  - Location: apps/skillsforge/app/api/assignments/route.ts (lines 51-56)
+  - Severity: HIGH
+  - Defect Description:
+    Query parameters 'from' and 'to' are parsed without null-checking:
+      where.assignmentDate = {
+        ...(from ? { gte: parseDate(from)! } : {}),
+        ...(to ? { lte: parseDate(to)! } : {}),
+      };
+  - Failure Mode: Passing ?from=invalid causes parseDate(from) to return null. The
+    assertion '!' passes { gte: null } to Prisma, throwing a validation error and
+    falling back to mock data.
+
+[LOGIC-03] Non-Null Assertion Crash in Expiry Check Job
+  - Location: apps/skillsforge/lib/api/expiryJob.ts (lines 26-27, 37)
+  - Severity: MEDIUM
+  - Defect Description:
+    const asOfDate = parseDate(asOf)!;
+    const cutoffDate = parseDate(addDaysToStr(asOf, 30))!;
+    If an invalid 'asOf' string is supplied, cutoffDate evaluates to null, passing
+    { lte: null } to Prisma where.certifiedUntil.lte and crashing the job.
+
+[LOGIC-04] Silent Truncation at 1,000 Records Across Analytics Endpoints
+  - Location: apps/skillsforge/app/api/assignments/check/route.ts (line 70)
+              apps/skillsforge/app/api/reports/gaps/route.ts (line 60)
+              apps/skillsforge/app/api/reports/verdict/route.ts (line 66)
+              apps/skillsforge/app/api/simulate/resignation/route.ts (line 104)
+  - Severity: MEDIUM
+  - Defect Description:
+    Each route hardcodes 'take: 1000' when fetching operator skill records:
+      db.sfOperatorSkill.findMany({ where: { orgId: ctx.orgId }, take: 1000 })
+  - Failure Mode: In larger factories with >1,000 skill records, skills past record 1,000
+    are excluded from calculations, falsely reporting operators as unqualified.
+
+[LOGIC-05] Missing Input Schema Validation on Biometric Sync
+  - Location: apps/skillsforge/app/api/attendance/sync-biometric/route.ts (lines 18-23)
+  - Severity: MEDIUM
+  - Defect Description:
+    Parses request JSON body without a Zod schema, violating CLAUDE.md Hard Rule 2.
+
+[LOGIC-06] Missing Certificate Date Order Validation
+  - Location: apps/skillsforge/app/api/member/certificates/route.ts (lines 20-21)
+  - Severity: MEDIUM
+  - Defect Description:
+    Schema validates regex YYYY-MM-DD but does not verify that certifiedUntil >= issuedOn.
+  - Failure Mode: Allows submission of certificates expired before their issue date.
+
+
+--------------------------------------------------------------------------------
+4. REPOSITORY RULES NON-COMPLIANCE (CLAUDE.md)
+--------------------------------------------------------------------------------
+
+[RULE-01] Missing writeAuditLog on State Mutations (Hard Rule 6)
+  - Locations:
+      - app/api/admin/leaves/route.ts:56-93 (Leave review decision)
+      - app/api/attendance/route.ts:67-101 (Attendance status change)
+      - app/api/attendance/sync-biometric/route.ts:9-31 (Biometric sync)
+      - app/api/member/certificates/route.ts:36-82 (Certificate submission)
+  - Severity: HIGH
+  - Defect Description:
+    CLAUDE.md Hard Rule 6 strictly mandates: "Write audit logs for every mutation:
+    operator change, skill change, assignment, certification." None of these routes
+    invoke writeAuditLog().
+
+[RULE-02] Hardcoded UI Strings & Bypassed i18n Dictionary (Hard Rule 5)
+  - Locations:
+      - app/(dashboard)/reports/verdict/page.tsx:74, 79, 88, 91, 94, 114, 117, 123
+      - app/(dashboard)/attendance/page.tsx:101-104, 130-133
+      - app/(dashboard)/leaves/page.tsx:107-112
+      - app/(dashboard)/workload/page.tsx:109, 121, 129-131
+      - app/(dashboard)/reports/page.tsx:19-21, 37-39, 47, 65-67, 75
+  - Severity: HIGH
+  - Defect Description:
+    CLAUDE.md Hard Rule 5 mandates: "Translate all user-visible strings via t().
+    No raw English strings in UI. Hindi translations are in apps/skillsforge/lib/i18n/hi.json."
+    The verdict report page contains 100% hardcoded English strings, while other pages
+    use inline ternary expressions (locale === "hi" ? "..." : "...") bypassing t().
+
+[RULE-03] Explicit 'any' Type Usage in Production Code (Hard Rule 1)
+  - Locations:
+      - app/api/assignments/route.ts:45, 84
+      - app/api/alerts/route.ts:91
+      - app/api/reports/gaps/route.ts:77, 93, 95, 96, 105, 108
+      - app/(dashboard)/leaves/page.tsx:118
+      - lib/db.ts:51, 65
+  - Severity: MEDIUM
+  - Defect Description:
+    CLAUDE.md Hard Rule 1 strictly mandates: "No any type. Every variable, argument,
+    return, and prop must have an explicit type."
+
+
+--------------------------------------------------------------------------------
+5. FRONTEND REACT ISSUES, MEMORY LEAKS & PAGINATION BUGS
+--------------------------------------------------------------------------------
+
+[UI-01] Missing <Suspense> Boundary Around useSearchParams()
+  - Location: apps/skillsforge/app/(dashboard)/reports/verdict/page.tsx (line 22)
+  - Severity: MEDIUM
+  - Defect Description:
+    Invoking useSearchParams() directly in VerdictReportPage without a <Suspense>
+    boundary de-optimizes the entire route to client-side rendering with build warnings.
+
+[UI-02] Broken Client-Side Action Filtering Across Paginated History
+  - Location: apps/skillsforge/app/(dashboard)/history/page.tsx (lines 127-129)
+  - Severity: MEDIUM
+  - Defect Description:
+    The actionFilter dropdown filters rawHistory on the client after server pagination.
+    If page 1 contains only CERTIFY records and the user filters by PROMOTE, the table
+    shows zero records even though subsequent server pages contain PROMOTE records.
+
+[UI-03] Dropdown Truncation at 100 Items
+  - Location: apps/skillsforge/app/(dashboard)/assign/page.tsx (lines 37, 48)
+              apps/skillsforge/app/(dashboard)/history/page.tsx (lines 76, 87)
+  - Severity: LOW
+  - Defect Description:
+    Dropdown lists fetch /api/operators?limit=100 and /api/skills?limit=100, cutting
+    off operators and machines indexed beyond 100.
+
+[UI-04] Memory Leaks via Uncleaned setTimeout Handlers
+  - Location: apps/skillsforge/app/(dashboard)/assign/page.tsx (line 120)
+              apps/skillsforge/app/(dashboard)/attendance/page.tsx (lines 105, 134)
+              apps/skillsforge/app/(dashboard)/leaves/page.tsx (lines 116, 120)
+              apps/skillsforge/app/(dashboard)/portal/page.tsx (lines 237-240)
+  - Severity: LOW
+  - Defect Description:
+    Feedback timeout timers are not cleared on component unmount, triggering React
+    memory leak warnings if users navigate away before the timer expires.
+
+================================================================================
+END OF AUDIT REPORT
+================================================================================

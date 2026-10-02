@@ -36,6 +36,7 @@ export function requireAdmin<TParams = Record<string, string | string[]>>(
         userName: session.user.name || "Unknown User",
         userRole: role,
         isSuperAdmin: Boolean(session.user.isSuperAdmin),
+        operatorId: session.user.operatorId ?? null,
         params: (context?.params ?? {}) as TParams,
       };
 

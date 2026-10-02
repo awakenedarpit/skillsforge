@@ -13,6 +13,8 @@ import {
   CheckCircle2,
   ExternalLink,
   ShieldAlert,
+  RefreshCw,
+  Zap,
 } from "lucide-react";
 
 export interface AlertItem {
@@ -41,6 +43,7 @@ export function AlertPanel() {
   const { t, locale } = useT();
   const queryClient = useQueryClient();
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedbackType, setFeedbackType] = useState<"success" | "error">("success");
 
   const { data: alerts, isLoading, isError } = useQuery<AlertItem[]>({
     queryKey: ["alerts"],
@@ -50,7 +53,6 @@ export function AlertPanel() {
       const json = await res.json();
       return json.data;
     },
-    refetchInterval: 15000,
   });
 
   const checkMutation = useMutation({
@@ -70,63 +72,136 @@ export function AlertPanel() {
       queryClient.invalidateQueries({ queryKey: ["alerts"] });
       queryClient.invalidateQueries({ queryKey: ["coverage"] });
       queryClient.invalidateQueries({ queryKey: ["grid"] });
-      setFeedback(`Checked ${res.data.flaggedTotal} certs (${res.data.newlyFlagged} newly flagged, ${res.data.resolvedCount} resolved)`);
-      setTimeout(() => setFeedback(null), 4000);
+      setFeedbackType("success");
+      setFeedback(
+        `Checked ${res.data.flaggedTotal} certs · ${res.data.newlyFlagged} newly flagged · ${res.data.resolvedCount} resolved`
+      );
+      setTimeout(() => setFeedback(null), 4500);
     },
     onError: (err: unknown) => {
+      setFeedbackType("error");
       setFeedback(err instanceof Error ? err.message : "Error executing check");
-      setTimeout(() => setFeedback(null), 4000);
+      setTimeout(() => setFeedback(null), 4500);
     },
   });
 
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4">
-        <Skeleton className="h-7 w-48" />
-        <Skeleton className="h-16 w-full" />
-        <Skeleton className="h-16 w-full" />
+      <div
+        className="rounded-xl overflow-hidden shadow-token-sm"
+        style={{
+          backgroundColor: "rgb(var(--surface))",
+          border: "1px solid rgb(var(--border))",
+        }}
+      >
+        <div className="p-5 space-y-3" style={{ borderBottom: "1px solid rgb(var(--border))" }}>
+          <Skeleton className="h-5 w-44 rounded-lg" />
+          <Skeleton className="h-3.5 w-32 rounded" />
+        </div>
+        <div className="p-4 space-y-2.5">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-lg p-3.5 space-y-2"
+              style={{ backgroundColor: "rgb(var(--surface-raised))", border: "1px solid rgb(var(--border))" }}>
+              <Skeleton className="h-3.5 w-36 rounded" />
+              <Skeleton className="h-3 w-28 rounded" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   if (isError || !alerts) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-700 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400">
-        <AlertCircle className="w-6 h-6 mb-2" />
-        <p className="font-semibold">{t("common.error")}</p>
-        <p className="text-sm">Unable to load live alerts.</p>
+      <div
+        className="rounded-xl p-5"
+        style={{
+          backgroundColor: "rgb(220 38 38 / 0.05)",
+          border: "1px solid rgb(220 38 38 / 0.2)",
+        }}
+      >
+        <AlertCircle className="w-5 h-5 mb-2" style={{ color: "rgb(220 38 38)" }} />
+        <p className="font-semibold text-sm" style={{ color: "rgb(220 38 38)" }}>
+          {t("common.error")}
+        </p>
+        <p className="text-xs mt-0.5" style={{ color: "rgb(var(--text-muted))" }}>
+          Unable to load live alerts.
+        </p>
       </div>
     );
   }
 
-  const overdueCount = alerts.filter((a) => a.daysRemaining < 0).length;
-  const expiringCount = alerts.filter((a) => a.daysRemaining >= 0 && a.daysRemaining <= 30).length;
+  const safeAlerts = Array.isArray(alerts) ? alerts : [];
+  const overdueCount = safeAlerts.filter((a) => a.daysRemaining < 0).length;
+  const criticalCount = safeAlerts.filter((a) => a.severity === "critical").length;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 flex flex-col">
+    <div
+      className="rounded-xl shadow-token-sm flex flex-col overflow-hidden"
+      style={{
+        backgroundColor: "rgb(var(--surface))",
+        border: "1px solid rgb(var(--border))",
+      }}
+    >
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-5 border-b border-slate-100 dark:border-slate-800/80 gap-3">
+      <div
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-5 gap-3"
+        style={{ borderBottom: "1px solid rgb(var(--border))" }}
+      >
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-accent-600 dark:text-accent-400" />
+          <div className="flex items-center gap-2.5 mb-1">
+            <div
+              className="w-6 h-6 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: "rgb(var(--accent-500) / 0.1)" }}
+            >
+              <Clock className="w-3.5 h-3.5" style={{ color: "rgb(var(--accent-600))" }} />
+            </div>
+            <h2
+              className="text-sm font-bold"
+              style={{ color: "rgb(var(--text))" }}
+            >
               {t("alerts.title")}
             </h2>
-            {alerts.length > 0 && (
-              <Badge variant={overdueCount > 0 ? "red" : "amber"}>
-                {alerts.length}
-              </Badge>
+
+            {safeAlerts.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Badge variant={overdueCount > 0 ? "red" : "amber"}>
+                  {safeAlerts.length}
+                </Badge>
+                {overdueCount > 0 && (
+                  <span
+                    className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded-full"
+                    style={{
+                      backgroundColor: "rgb(220 38 38 / 0.1)",
+                      color: "rgb(185 28 28)",
+                      border: "1px solid rgb(220 38 38 / 0.2)",
+                    }}
+                  >
+                    {overdueCount} overdue
+                  </span>
+                )}
+              </div>
             )}
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p
+            className="text-xs"
+            style={{ color: "rgb(var(--text-muted))" }}
+          >
             {t("alerts.subtitle")}
           </p>
         </div>
 
-        {/* Action: Run check now */}
-        <div className="flex items-center gap-2">
+        {/* Run check action */}
+        <div className="flex items-center gap-2 shrink-0">
           {feedback && (
-            <span className="text-xs font-medium text-accent-700 dark:text-accent-400 animate-fade-in">
+            <span
+              className="text-xs font-medium font-mono animate-fade-in"
+              style={{
+                color: feedbackType === "success"
+                  ? "rgb(var(--accent-700))"
+                  : "rgb(220 38 38)",
+              }}
+            >
               {feedback}
             </span>
           )}
@@ -135,96 +210,143 @@ export function AlertPanel() {
             size="sm"
             onClick={() => checkMutation.mutate()}
             disabled={checkMutation.isPending}
-            className="shrink-0"
+            className="gap-1.5"
           >
-            <Play className={`w-3.5 h-3.5 mr-1.5 ${checkMutation.isPending ? "animate-spin" : ""}`} />
+            {checkMutation.isPending ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Zap className="w-3.5 h-3.5" style={{ color: "rgb(var(--accent-600))" }} />
+            )}
             {checkMutation.isPending ? t("alerts.running") : t("alerts.runCheck")}
           </Button>
         </div>
       </div>
 
-      {/* Body: List of alerts */}
-      <div className="p-5 flex-1">
-        {alerts.length === 0 ? (
+      {/* Alert list */}
+      <div className="p-4 flex-1">
+        {safeAlerts.length === 0 ? (
           <EmptyState
-            icon={<CheckCircle2 className="w-10 h-10 text-emerald-500" />}
+            icon={<CheckCircle2 className="w-10 h-10" style={{ color: "rgb(22 163 74)" }} />}
             title={t("alerts.empty")}
             description="All active operators hold valid certifications beyond the 30-day window."
           />
         ) : (
-          <div className="divide-y divide-slate-100 dark:divide-slate-800/60 max-h-[460px] overflow-y-auto pr-1">
-            {alerts.map((alert) => {
+          <div
+            className="divide-y max-h-[440px] overflow-y-auto scrollbar-hide"
+            style={{ borderColor: "rgb(var(--border))" }}
+          >
+            {safeAlerts.map((alert) => {
               const isOverdue = alert.daysRemaining < 0;
+              const isCritical = alert.severity === "critical";
               const skillName =
-                locale === "hi" && alert.skill.nameHi ? alert.skill.nameHi : alert.skill.name;
+                locale === "hi" && alert.skill.nameHi
+                  ? alert.skill.nameHi
+                  : alert.skill.name;
+
+              const severityConfig = isOverdue
+                ? {
+                    bg: "rgb(220 38 38 / 0.08)",
+                    text: "rgb(220 38 38)",
+                    badgeBg: "rgb(220 38 38 / 0.1)",
+                    badgeText: "rgb(185 28 28)",
+                    badgeBorder: "rgb(220 38 38 / 0.2)",
+                  }
+                : isCritical
+                ? {
+                    bg: "rgb(var(--accent-500) / 0.08)",
+                    text: "rgb(var(--accent-700))",
+                    badgeBg: "rgb(var(--accent-500) / 0.1)",
+                    badgeText: "rgb(var(--accent-700))",
+                    badgeBorder: "rgb(var(--accent-500) / 0.2)",
+                  }
+                : {
+                    bg: "rgb(37 99 235 / 0.07)",
+                    text: "rgb(37 99 235)",
+                    badgeBg: "rgb(37 99 235 / 0.08)",
+                    badgeText: "rgb(37 99 235)",
+                    badgeBorder: "rgb(37 99 235 / 0.15)",
+                  };
 
               return (
                 <div
                   key={alert.id}
-                  className="py-3 flex items-center justify-between gap-3 hover:bg-slate-50/50 dark:hover:bg-slate-850/40 px-2 rounded-lg transition-colors"
+                  className="py-3 px-2 flex items-center justify-between gap-3 rounded-lg transition-colors duration-[80ms]"
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.backgroundColor =
+                      "rgb(var(--surface-raised))";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
+                  }}
                 >
                   <div className="flex items-start gap-3 min-w-0">
+                    {/* Severity icon pill */}
                     <div
-                      className={`mt-0.5 p-2 rounded-lg shrink-0 ${
-                        isOverdue
-                          ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
-                          : alert.severity === "critical"
-                          ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
-                          : "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-                      }`}
+                      className="mt-0.5 p-1.5 rounded-lg shrink-0"
+                      style={{
+                        backgroundColor: severityConfig.bg,
+                        color: severityConfig.text,
+                      }}
                     >
                       {isOverdue ? (
-                        <ShieldAlert className="w-4 h-4" />
+                        <ShieldAlert className="w-3.5 h-3.5" />
                       ) : (
-                        <AlertTriangle className="w-4 h-4" />
+                        <AlertTriangle className="w-3.5 h-3.5" />
                       )}
                     </div>
 
+                    {/* Info */}
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span
+                          className="font-semibold text-xs"
+                          style={{ color: "rgb(var(--text))" }}
+                        >
                           {alert.operator.name}
                         </span>
-                        <span className="text-xs text-slate-500 font-mono">
+                        <span
+                          className="text-[10px] font-mono"
+                          style={{ color: "rgb(var(--text-muted))" }}
+                        >
                           ({alert.operator.employeeCode})
                         </span>
                       </div>
-
-                      <div className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 truncate">
-                        <span className="font-semibold font-mono text-slate-700 dark:text-slate-200">
-                          {alert.skill.code}
-                        </span>{" "}
-                        - {skillName}
+                      <div
+                        className="text-xs mt-0.5 truncate"
+                        style={{ color: "rgb(var(--text-secondary))" }}
+                      >
+                        <span className="font-mono font-semibold">{alert.skill.code}</span>{" "}
+                        — {skillName}
                       </div>
-
-                      <div className="text-[11px] text-slate-400 mt-1 font-mono">
+                      <div
+                        className="text-[10px] font-mono mt-1"
+                        style={{ color: "rgb(var(--text-muted))" }}
+                      >
                         {t("common.certifiedUntil")}: {alert.certifiedUntil}
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-end gap-1 shrink-0">
+                  {/* Days badge + link */}
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
                     <span
-                      className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                        isOverdue
-                          ? "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 border border-red-300 dark:border-red-800"
-                          : alert.severity === "critical"
-                          ? "bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-300 border border-red-200"
-                          : alert.severity === "warning"
-                          ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300"
-                          : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
-                      }`}
+                      className="text-[11px] font-bold font-mono px-2 py-0.5 rounded-full"
+                      style={{
+                        backgroundColor: severityConfig.badgeBg,
+                        color: severityConfig.badgeText,
+                        border: `1px solid ${severityConfig.badgeBorder}`,
+                      }}
                     >
                       {isOverdue
                         ? t("alerts.overdueBy", { days: Math.abs(alert.daysRemaining) })
                         : t("alerts.daysLeft", { days: alert.daysRemaining })}
                     </span>
-
                     <Link
                       href={`/grid?shiftId=${alert.operator.shiftId}`}
-                      className="text-[11px] text-accent-600 hover:text-accent-800 dark:text-accent-400 font-medium inline-flex items-center gap-0.5 mt-1"
+                      className="text-[10px] font-medium inline-flex items-center gap-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-500 rounded"
+                      style={{ color: "rgb(var(--accent-600))" }}
                     >
-                      View in Grid <ExternalLink className="w-3 h-3" />
+                      Grid <ExternalLink className="w-3 h-3" />
                     </Link>
                   </div>
                 </div>

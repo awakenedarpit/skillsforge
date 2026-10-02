@@ -27,10 +27,10 @@ export function formatRelativeDate(targetDate: string | Date | null | undefined,
   const target = new Date(targetDate);
   const base = new Date(asOf);
   if (isNaN(target.getTime()) || isNaN(base.getTime())) return "-";
-  
+
   const diffTime = target.getTime() - base.getTime();
   const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-  
+
   if (diffDays === 0) return "today";
   if (diffDays > 0) return `in ${diffDays} day${diffDays === 1 ? "" : "s"}`;
   return `${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? "" : "s"} ago`;
@@ -44,18 +44,29 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "primary", size = "md", disabled, children, ...props }, ref) => {
-    const base = "inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none";
+    const base =
+      "inline-flex items-center justify-center font-medium rounded-lg transition-all duration-[120ms] " +
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 " +
+      "disabled:opacity-40 disabled:pointer-events-none active:scale-[0.97]";
+
     const variants = {
-      primary: "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500",
-      secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100 focus:ring-slate-400",
-      outline: "border border-slate-300 bg-transparent hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800 focus:ring-slate-400",
-      destructive: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
-      ghost: "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 focus:ring-slate-400",
+      primary:
+        "bg-accent-600 text-[rgb(14_13_11)] hover:bg-accent-500 focus-visible:ring-accent-500 shadow-token-sm",
+      secondary:
+        "bg-[rgb(var(--surface-raised))] text-[rgb(var(--text))] hover:bg-[rgb(var(--border))] focus-visible:ring-[rgb(var(--border-strong))]",
+      outline:
+        "border border-[rgb(var(--border-strong))] bg-transparent text-[rgb(var(--text-secondary))] " +
+        "hover:bg-[rgb(var(--surface-raised))] hover:text-[rgb(var(--text))] focus-visible:ring-[rgb(var(--border-strong))]",
+      destructive:
+        "bg-red-600 text-white hover:bg-red-500 focus-visible:ring-red-500 shadow-token-sm",
+      ghost:
+        "text-[rgb(var(--text-secondary))] hover:bg-[rgb(var(--surface-raised))] hover:text-[rgb(var(--text))] focus-visible:ring-[rgb(var(--border-strong))]",
     };
+
     const sizes = {
       sm: "h-8 px-3 text-xs gap-1.5",
-      md: "h-10 px-4 text-sm gap-2",
-      lg: "h-12 px-6 text-base gap-2.5",
+      md: "h-9 px-4 text-sm gap-2",
+      lg: "h-11 px-6 text-base gap-2.5",
     };
 
     return (
@@ -80,7 +91,11 @@ export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttribute
         type={type}
         ref={ref}
         className={cn(
-          "flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
+          "flex h-9 w-full rounded-lg border bg-[rgb(var(--surface))] px-3 py-2 text-sm " +
+          "text-[rgb(var(--text))] placeholder:text-[rgb(var(--text-muted))] " +
+          "border-[rgb(var(--border-strong))] " +
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:border-transparent " +
+          "disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-[120ms]",
           className
         )}
         {...props}
@@ -105,7 +120,10 @@ export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttrib
       <select
         ref={ref}
         className={cn(
-          "flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
+          "flex h-9 w-full rounded-lg border border-[rgb(var(--border-strong))] " +
+          "bg-[rgb(var(--surface))] px-3 py-2 text-sm text-[rgb(var(--text))] " +
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:border-transparent " +
+          "disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-[120ms]",
           className
         )}
         {...props}
@@ -131,9 +149,15 @@ export function Field({
 }) {
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      {label && <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">{label}</label>}
+      {label && (
+        <label className="text-xs font-semibold" style={{ color: "rgb(var(--text-secondary))" }}>
+          {label}
+        </label>
+      )}
       {children}
-      {error && <span className="text-xs text-red-600 dark:text-red-400 font-medium">{error}</span>}
+      {error && (
+        <span className="text-xs font-medium text-red-600 dark:text-red-400">{error}</span>
+      )}
     </div>
   );
 }
@@ -151,9 +175,14 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900",
+        "rounded-xl p-5 shadow-token-sm",
         className
       )}
+      style={{
+        backgroundColor: "rgb(var(--surface))",
+        border: "1px solid rgb(var(--border))",
+        ...((props as React.HTMLAttributes<HTMLDivElement> & { style?: React.CSSProperties }).style ?? {}),
+      }}
       {...props}
     >
       {children}
@@ -172,11 +201,16 @@ export function Badge({
   children: ReactNode;
 }) {
   const variants = {
-    neutral: "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200",
-    green: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800",
-    amber: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800",
-    red: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 border border-red-300 dark:border-red-800",
-    blue: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-300 dark:border-blue-800",
+    neutral:
+      "bg-[rgb(var(--surface-raised))] text-[rgb(var(--text-secondary))] border border-[rgb(var(--border))]",
+    green:
+      "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20",
+    amber:
+      "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20",
+    red:
+      "bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20",
+    blue:
+      "bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20",
   };
   return (
     <span
@@ -205,11 +239,17 @@ export function Tooltip({
         <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
         <TooltipPrimitive.Portal>
           <TooltipPrimitive.Content
-            sideOffset={4}
-            className="z-50 overflow-hidden rounded-md bg-slate-900 px-3 py-1.5 text-xs text-white shadow-md animate-in fade-in-0 zoom-in-95 dark:bg-slate-100 dark:text-slate-900"
+            sideOffset={5}
+            className="z-50 overflow-hidden rounded-lg px-3 py-1.5 text-xs shadow-token-md animate-in fade-in-0 zoom-in-95"
+            style={{
+              backgroundColor: "rgb(var(--text))",
+              color: "rgb(var(--bg))",
+              fontSize: "11px",
+              fontWeight: 500,
+            }}
           >
             {content}
-            <TooltipPrimitive.Arrow className="fill-slate-900 dark:fill-slate-100" />
+            <TooltipPrimitive.Arrow style={{ fill: "rgb(var(--text))" }} />
           </TooltipPrimitive.Content>
         </TooltipPrimitive.Portal>
       </TooltipPrimitive.Root>
@@ -221,7 +261,11 @@ export function Tooltip({
 export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("animate-pulse rounded-md bg-slate-200 dark:bg-slate-800", className)}
+      className={cn(
+        "rounded-lg animate-pulse",
+        className
+      )}
+      style={{ backgroundColor: "rgb(var(--surface-raised))" }}
       {...props}
     />
   );
@@ -243,9 +287,19 @@ export function EmptyState({
 }) {
   return (
     <div className={cn("flex flex-col items-center justify-center p-8 text-center", className)}>
-      {icon && <div className="mb-3 text-slate-400 dark:text-slate-600">{icon}</div>}
-      <h3 className="text-base font-semibold text-slate-800 dark:text-slate-200">{title}</h3>
-      {description && <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-sm">{description}</p>}
+      {icon && (
+        <div className="mb-3" style={{ color: "rgb(var(--text-muted))" }}>
+          {icon}
+        </div>
+      )}
+      <h3 className="text-sm font-semibold" style={{ color: "rgb(var(--text))" }}>
+        {title}
+      </h3>
+      {description && (
+        <p className="mt-1 text-xs max-w-sm" style={{ color: "rgb(var(--text-muted))" }}>
+          {description}
+        </p>
+      )}
       {action && <div className="mt-4">{action}</div>}
     </div>
   );
@@ -264,7 +318,10 @@ export function Segmented<T extends string | number>({
   className?: string;
 }) {
   return (
-    <div className={cn("inline-flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800", className)}>
+    <div
+      className={cn("inline-flex rounded-lg p-1 gap-0.5", className)}
+      style={{ backgroundColor: "rgb(var(--surface-raised))" }}
+    >
       {options.map((opt) => {
         const active = opt.value === value;
         return (
@@ -272,12 +329,18 @@ export function Segmented<T extends string | number>({
             key={String(opt.value)}
             type="button"
             onClick={() => onChange(opt.value)}
-            className={cn(
-              "px-3 py-1.5 text-xs font-semibold rounded-md transition-all",
+            className="px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-[120ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+            style={
               active
-                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white"
-                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-            )}
+                ? {
+                    backgroundColor: "rgb(var(--surface))",
+                    color: "rgb(var(--text))",
+                    boxShadow: "var(--shadow-sm)",
+                  }
+                : {
+                    color: "rgb(var(--text-muted))",
+                  }
+            }
           >
             {opt.label}
           </button>
@@ -304,14 +367,26 @@ export function Modal({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm animate-in fade-in-0" />
-        <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-slate-200 bg-white p-6 shadow-lg duration-200 rounded-lg dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex flex-col space-y-1.5 text-left">
-            <DialogPrimitive.Title className="text-lg font-semibold leading-none tracking-tight text-slate-900 dark:text-slate-100">
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-in fade-in-0" />
+        <DialogPrimitive.Content
+          className="fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] rounded-xl p-6 shadow-token-lg duration-200 animate-in fade-in-0 zoom-in-95"
+          style={{
+            backgroundColor: "rgb(var(--surface))",
+            border: "1px solid rgb(var(--border))",
+          }}
+        >
+          <div className="flex flex-col space-y-1.5 mb-4">
+            <DialogPrimitive.Title
+              className="text-base font-bold tracking-tight"
+              style={{ color: "rgb(var(--text))" }}
+            >
               {title}
             </DialogPrimitive.Title>
             {description && (
-              <DialogPrimitive.Description className="text-sm text-slate-500 dark:text-slate-400">
+              <DialogPrimitive.Description
+                className="text-sm"
+                style={{ color: "rgb(var(--text-muted))" }}
+              >
                 {description}
               </DialogPrimitive.Description>
             )}
@@ -338,21 +413,41 @@ export function SlidePanel({
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+        onClick={onClose}
+        aria-hidden="true"
+      />
       <div className="fixed inset-y-0 right-0 flex max-w-full pl-10">
-        <div className="w-screen max-w-md border-l border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900 flex flex-col justify-between">
+        <div
+          className="w-screen max-w-md p-6 shadow-token-lg flex flex-col justify-between"
+          style={{
+            backgroundColor: "rgb(var(--surface))",
+            borderLeft: "1px solid rgb(var(--border))",
+          }}
+        >
           <div>
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
+            <div
+              className="flex items-center justify-between pb-4 mb-4"
+              style={{ borderBottom: "1px solid rgb(var(--border))" }}
+            >
+              <h2
+                className="text-base font-bold"
+                style={{ color: "rgb(var(--text))" }}
+              >
+                {title}
+              </h2>
               <button
                 type="button"
                 onClick={onClose}
-                className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                className="text-sm px-2 py-1 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500"
+                style={{ color: "rgb(var(--text-muted))" }}
+                aria-label="Close panel"
               >
                 ✕
               </button>
             </div>
-            <div className="mt-4">{children}</div>
+            <div>{children}</div>
           </div>
         </div>
       </div>
@@ -376,9 +471,18 @@ export function DataTable<T>({
     return <EmptyState title={emptyText} />;
   }
   return (
-    <div className="w-full overflow-x-auto rounded-md border border-slate-200 dark:border-slate-800">
+    <div
+      className="w-full overflow-x-auto rounded-lg"
+      style={{ border: "1px solid rgb(var(--border))" }}
+    >
       <table className="w-full text-left text-sm">
-        <thead className="bg-slate-50 text-xs font-semibold text-slate-600 uppercase dark:bg-slate-800 dark:text-slate-300">
+        <thead
+          className="text-xs font-semibold uppercase tracking-wider"
+          style={{
+            backgroundColor: "rgb(var(--surface-raised))",
+            color: "rgb(var(--text-muted))",
+          }}
+        >
           <tr>
             {columns.map((col, idx) => (
               <th key={idx} className={cn("px-4 py-3", col.className)}>
@@ -387,11 +491,25 @@ export function DataTable<T>({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+        <tbody
+          className="divide-y"
+          style={{ borderColor: "rgb(var(--border))" }}
+        >
           {data.map((item) => (
-            <tr key={keyExtractor(item)} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+            <tr
+              key={keyExtractor(item)}
+              className="transition-colors duration-[80ms]"
+              style={{ color: "rgb(var(--text-secondary))" }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.backgroundColor =
+                  "rgb(var(--surface-raised))";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
+              }}
+            >
               {columns.map((col, idx) => (
-                <td key={idx} className={cn("px-4 py-3 text-slate-700 dark:text-slate-300", col.className)}>
+                <td key={idx} className={cn("px-4 py-3", col.className)}>
                   {col.cell(item)}
                 </td>
               ))}
@@ -415,14 +533,24 @@ export function Pagination({
 }) {
   return (
     <div className="flex items-center justify-between py-3">
-      <span className="text-xs text-slate-500">
+      <span className="text-xs" style={{ color: "rgb(var(--text-muted))" }}>
         Page {page} of {totalPages || 1}
       </span>
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={page <= 1}
+          onClick={() => onPageChange(page - 1)}
+        >
           Previous
         </Button>
-        <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={page >= totalPages}
+          onClick={() => onPageChange(page + 1)}
+        >
           Next
         </Button>
       </div>
@@ -439,7 +567,9 @@ interface ConfirmOptions {
   destructive?: boolean;
 }
 
-const ConfirmContext = createContext<(opts: ConfirmOptions) => Promise<boolean>>(() => Promise.resolve(false));
+const ConfirmContext = createContext<(opts: ConfirmOptions) => Promise<boolean>>(
+  () => Promise.resolve(false)
+);
 
 export function ConfirmProvider({ children }: { children: ReactNode }) {
   const [dialogState, setDialogState] = useState<{
@@ -503,16 +633,24 @@ export const PopoverTrigger = PopoverPrimitive.Trigger;
 export const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
->(({ className, align = "center", sideOffset = 4, ...props }, ref) => (
+>(({ className, align = "center", sideOffset = 5, ...props }, ref) => (
   <PopoverPrimitive.Portal>
     <PopoverPrimitive.Content
       ref={ref}
       align={align}
       sideOffset={sideOffset}
+      avoidCollisions={true}
+      collisionPadding={8}
       className={cn(
-        "z-50 w-80 rounded-xl border border-slate-200 bg-white p-4 text-slate-900 shadow-xl outline-none animate-in fade-in-0 zoom-in-95 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100",
+        "z-50 w-80 rounded-xl p-4 shadow-token-lg outline-none " +
+        "animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2",
         className
       )}
+      style={{
+        backgroundColor: "rgb(var(--surface))",
+        border: "1px solid rgb(var(--border))",
+        color: "rgb(var(--text))",
+      }}
       {...props}
     />
   </PopoverPrimitive.Portal>
@@ -529,10 +667,22 @@ export const Slider = React.forwardRef<
     className={cn("relative flex w-full touch-none select-none items-center", className)}
     {...props}
   >
-    <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
-      <SliderPrimitive.Range className="absolute h-full bg-accent-600 dark:bg-accent-500" />
+    <SliderPrimitive.Track
+      className="relative h-1.5 w-full grow overflow-hidden rounded-full"
+      style={{ backgroundColor: "rgb(var(--border))" }}
+    >
+      <SliderPrimitive.Range
+        className="absolute h-full"
+        style={{ backgroundColor: "rgb(var(--accent-500))" }}
+      />
     </SliderPrimitive.Track>
-    <SliderPrimitive.Thumb className="block h-5 w-5 rounded-full border-2 border-accent-600 bg-white ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:border-accent-500 dark:bg-slate-950 dark:ring-offset-slate-950" />
+    <SliderPrimitive.Thumb
+      className="block h-4 w-4 rounded-full border-2 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+      style={{
+        backgroundColor: "rgb(var(--surface))",
+        borderColor: "rgb(var(--accent-500))",
+      }}
+    />
   </SliderPrimitive.Root>
 ));
 Slider.displayName = SliderPrimitive.Root.displayName;

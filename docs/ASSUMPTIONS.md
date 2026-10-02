@@ -25,4 +25,4 @@ This document records deliberate design and architectural decisions made per Rul
 
 ### 6. Demo Seed Exception
 - **Decision:** An app-level seed script (`apps/skillsforge/lib/demo/seed.ts`) is included to provide the required 15 operators × 8 machines dataset and support the "Reset demo data" admin action.
-- **Reason:** Explicitly required by PS 22 and the master specification.
+- **Reason:** Explicitly required by the master specification.

@@ -273,6 +273,7 @@ describe("SkillsForge Acceptance Gate (D1 - D4 Criteria)", () => {
 
     // 3. Verify idempotency: running check a second time does not re-flag as new
     (mockDb.sfAlert.findFirst as any).mockResolvedValue({ id: "al-existing" });
+    (mockDb.sfAlert.findMany as any).mockResolvedValue(alertsList);
     const secondResult = await runExpiryCheck({
       orgId: "org-demo-1",
       asOf,

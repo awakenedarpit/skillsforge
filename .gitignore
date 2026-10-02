@@ -10,3 +10,8 @@ coverage/
 .env.*.local
 *.db
 .DS_Store
+
+# Auto-added
+apps/skillsforge/cookies.txt
+apps/skillsforge/scratch/
+*.tsbuildinfo

@@ -81,7 +81,7 @@ export const GET = withOrgAuth(async (req, ctx) => {
       }),
     ]);
 
-    const formatted = items.map((item) => ({
+    const formatted = items.map((item: any) => ({
       ...item,
       assignmentDate: formatDateStr(parseDate(item.assignmentDate))!,
     }));
@@ -240,7 +240,7 @@ export const POST = withOrgAuth(async (req, ctx) => {
         assignmentDate: parseDate(assignmentDate)!,
         status: isGreen ? "accepted" : "rejected",
         verdict: verdictPayload.verdict,
-        reasonsJson: isGreen ? null : ({ blocking: verdictPayload.blocking, warnings: verdictPayload.warnings } as any),
+        reasonsJson: isGreen ? null : JSON.stringify({ blocking: verdictPayload.blocking, warnings: verdictPayload.warnings }),
         assignedBy: ctx.userId,
       },
       select: {

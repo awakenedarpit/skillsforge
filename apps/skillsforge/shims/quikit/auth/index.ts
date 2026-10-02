@@ -15,13 +15,17 @@ export interface QuikITSession {
 }
 
 export function createMiddleware(options?: { publicRoutes?: string[] }) {
-  const publicRoutes = options?.publicRoutes ?? ["/login"];
+  const publicRoutes = options?.publicRoutes ?? ["/login", "/api/health", "/api/auth"];
 
   return async function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
     
     // Always permit public routes and health
-    if (publicRoutes.some((route) => pathname.startsWith(route)) || pathname === "/api/health") {
+    if (
+      publicRoutes.some((route) => pathname === route || pathname.startsWith(route + "/") || pathname.startsWith(route)) ||
+      pathname === "/api/health" ||
+      pathname.startsWith("/api/auth")
+    ) {
       return NextResponse.next();
     }
 
@@ -31,7 +35,10 @@ export function createMiddleware(options?: { publicRoutes?: string[] }) {
       secret: process.env.NEXTAUTH_SECRET || "insecure-dev-secret-for-skillsforge",
     });
 
-    if (!token && !pathname.startsWith("/api/")) {
+    if (!token) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ success: false, error: "Unauthenticated" }, { status: 401 });
+      }
       const loginUrl = new URL("/login", req.url);
       loginUrl.searchParams.set("callbackUrl", req.url);
       return NextResponse.redirect(loginUrl);

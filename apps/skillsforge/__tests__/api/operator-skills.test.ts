@@ -126,6 +126,68 @@ describe("Operator Skills API Routes", () => {
       expect(json.data.cell.level).toBe(3);
       expect(json.data.cell.effectiveLevel).toBe(3);
     });
+
+    it("returns success response even if post-write coverage rebuild throws", async () => {
+      setSession({
+        user: {
+          id: "usr-supervisor-1",
+          name: "Rohit Kulkarni",
+          orgId: "org-demo-1",
+          membershipRole: "app_admin",
+        },
+      });
+
+      (mockDb.sfOperator.findFirst as any).mockResolvedValueOnce({ id: "op-001", orgId: "org-demo-1" });
+      (mockDb.sfSkill.findFirst as any).mockResolvedValueOnce({ id: "sk-cnc-l1", orgId: "org-demo-1" });
+
+      (mockDb.$transaction as any).mockImplementationOnce(async (cb: any) => {
+        const txMock = {
+          sfOperatorSkill: {
+            findFirst: vi.fn().mockResolvedValue({ level: 2, issuedOn: null, certifiedUntil: null }),
+            upsert: vi.fn().mockResolvedValue({
+              id: "os-001",
+              orgId: "org-demo-1",
+              operatorId: "op-001",
+              skillId: "sk-cnc-l1",
+              level: 3,
+              issuedOn: new Date("2026-01-01"),
+              certifiedUntil: new Date("2027-01-01"),
+            }),
+          },
+          sfSkillHistory: {
+            create: vi.fn().mockResolvedValue({ id: "hist-001" }),
+          },
+          sfAlert: {
+            upsert: vi.fn().mockResolvedValue({ id: "alert-001" }),
+            updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+          },
+        };
+        return cb(txMock);
+      });
+
+      // Simulate post-write coverage query failure
+      (mockDb.sfShift.findMany as any).mockRejectedValueOnce(new Error("Coverage calculation failed"));
+
+      const req = new NextRequest("http://localhost:3011/api/operator-skills", {
+        method: "PATCH",
+        body: JSON.stringify({
+          operatorId: "op-001",
+          skillId: "sk-cnc-l1",
+          level: 3,
+          issuedOn: "2026-01-01",
+          certifiedUntil: "2027-01-01",
+          reason: "Passed proficiency assessment",
+        }),
+      });
+
+      const res = await updateCell(req);
+      const json = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(json.success).toBe(true);
+      expect(json.data.cell.level).toBe(3);
+      expect(json.data.recomputedCoverage).toBeNull();
+    });
   });
 
   describe("DELETE /api/operator-skills", () => {

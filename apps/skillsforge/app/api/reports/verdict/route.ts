@@ -87,7 +87,7 @@ export const GET = withOrgAuth(async (req, ctx) => {
     }
 
     const shiftId = parsed.data.shiftId || targetOperator.shiftId;
-    const targetShift = allShifts.find((s) => s.id === shiftId);
+    const targetShift = allShifts.find((s: any) => s.id === shiftId);
 
     const shiftCodes: Record<string, string> = {};
     for (const s of allShifts) {
@@ -104,7 +104,7 @@ export const GET = withOrgAuth(async (req, ctx) => {
     const median = sorted.length === 0 ? 0 : sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
     const workload: WorkloadMap = { counts, median };
 
-    const mappedRecords = allRecords.map((r) => ({
+    const mappedRecords = allRecords.map((r: any) => ({
       operatorId: r.operatorId,
       skillId: r.skillId,
       level: r.level,

@@ -1,32 +1,346 @@
+@import "../shims/quikit/ui/styles.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import "../shims/quikit/ui/styles.css";
 
-/* Self-hosted fonts fallback stack */
-body {
-  font-family: "Inter Variable", "Noto Sans Devanagari", system-ui, -apple-system, sans-serif;
-  -webkit-font-smoothing: antialiased;
+/* ═══════════════════════════════════════════════════════════════════
+   SKILLSFORGE — Global Base Styles v2
+   Concept: Industrial precision command console · Premium & refined
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Base reset ── */
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
-/* Subtle glowing pulse for red cells in coverage heatmap */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "InterVariable", "Inter", "Noto Sans Devanagari", system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  background-color: rgb(var(--bg));
+  color: rgb(var(--text));
+  -webkit-font-smoothing: antialiased;
+  min-height: 100svh;
+}
+
+/* ── Mono for data — industrial feel ── */
+.font-mono,
+.tabular-nums {
+  font-family: ui-monospace, "Fira Code", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Focus management — keyboard only ── */
+:focus-visible {
+  outline: 2px solid rgb(var(--accent-500));
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ── Selection ── */
+::selection {
+  background-color: rgb(var(--accent-200) / 0.5);
+  color: rgb(var(--text));
+}
+
+.dark ::selection {
+  background-color: rgb(var(--accent-700) / 0.4);
+}
+
+/* ═══════════════════
+   Scrollbars — hairline
+   ═══════════════════ */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--border-strong));
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--text-muted));
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ═══════════════════════════════════════
+   KEYFRAMES — Premium animation set
+   ═══════════════════════════════════════ */
+
+/* Heatmap cell pulse — red coverage gap */
 @keyframes glowRed {
-  0%, 100% {
-    box-shadow: 0 0 10px 2px rgba(239, 68, 68, 0.45);
-  }
-  50% {
-    box-shadow: 0 0 3px 1px rgba(239, 68, 68, 0.15);
-  }
+  0%, 100% { box-shadow: 0 0 10px 2px rgba(220, 38, 38, 0.5); }
+  50%       { box-shadow: 0 0 3px 1px rgba(220, 38, 38, 0.18); }
 }
 
 .cell-glow-red {
   animation: glowRed 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* Amber signal pulse for alerts */
+@keyframes glowAmber {
+  0%, 100% { box-shadow: 0 0 8px 2px rgba(245, 158, 11, 0.45); }
+  50%       { box-shadow: 0 0 3px 1px rgba(245, 158, 11, 0.12); }
+}
+
+.cell-glow-amber {
+  animation: glowAmber 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Fade in */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn var(--duration-enter) var(--ease-out) both;
+}
+
+/* Slide up — cards on mount */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slideUp var(--duration-enter) var(--ease-out) both;
+}
+
+/* Tick in — data numbers counting in */
+@keyframes tickIn {
+  from { opacity: 0; transform: scale(0.84); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-tick-in {
+  animation: tickIn var(--duration-normal) var(--ease-out) both;
+}
+
+/* Slide in from left — sidebar items */
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft var(--duration-normal) var(--ease-out) both;
+}
+
+/* Pulse ring — live status indicator */
+@keyframes pingRing {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.animate-ping-ring {
+  animation: pingRing 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Shimmer skeleton */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgb(var(--surface-raised)) 25%,
+    rgb(var(--border)) 37%,
+    rgb(var(--surface-raised)) 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.6s ease infinite;
+}
+
+/* Heatmap pulse */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 12px 2px rgba(220, 38, 38, 0.6); }
+  50%       { box-shadow: 0 0 4px 1px rgba(220, 38, 38, 0.2); }
+}
+
+/* Number counter */
+@keyframes countUp {
+  from { clip-path: inset(100% 0 0 0); transform: translateY(6px); }
+  to   { clip-path: inset(0 0 0 0); transform: translateY(0); }
+}
+
+.animate-count-up {
+  animation: countUp var(--duration-normal) var(--ease-out) both;
+}
+
+/* ═══════════════════
+   Reduced motion
+   ═══════════════════ */
 @media (prefers-reduced-motion: reduce) {
   .cell-glow-red {
     animation: none;
-    box-shadow: 0 0 0 2px rgb(239 68 68);
+    box-shadow: 0 0 0 2px rgb(220 38 38);
   }
+
+  .cell-glow-amber {
+    animation: none;
+    box-shadow: 0 0 0 2px rgb(245 158 11);
+  }
+
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-tick-in,
+  .animate-slide-in-left,
+  .animate-count-up,
+  .animate-shimmer {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    background: rgb(var(--surface-raised));
+  }
+
+  .animate-ping-ring {
+    animation: none;
+  }
+}
+
+/* ═══════════════════════════════════════
+   UTILITY TOKENS — Design system helpers
+   ═══════════════════════════════════════ */
+
+/* Surface utilities */
+.bg-surface         { background-color: rgb(var(--surface)); }
+.bg-surface-raised  { background-color: rgb(var(--surface-raised)); }
+.bg-surface-overlay { background-color: rgb(var(--surface-overlay)); }
+
+/* Text utilities */
+.text-secondary      { color: rgb(var(--text-secondary)); }
+.text-muted-token    { color: rgb(var(--text-muted)); }
+
+/* Border utilities */
+.border-token        { border-color: rgb(var(--border)); }
+.border-token-strong { border-color: rgb(var(--border-strong)); }
+
+/* Shadow utilities */
+.shadow-token-xs { box-shadow: var(--shadow-xs); }
+.shadow-token-sm { box-shadow: var(--shadow-sm); }
+.shadow-token-md { box-shadow: var(--shadow-md); }
+.shadow-token-lg { box-shadow: var(--shadow-lg); }
+.shadow-token-xl { box-shadow: var(--shadow-xl); }
+
+/* ═══════════════════════════════════════
+   PREMIUM UI PATTERNS
+   ═══════════════════════════════════════ */
+
+/* Sidebar ambient glow — active item */
+.sidebar-item-active {
+  background-color: rgb(var(--accent-500) / 0.1);
+  color: rgb(var(--accent-600));
+}
+
+/* Card hover lift */
+.card-hover {
+  transition: box-shadow var(--duration-normal) var(--ease-out),
+              transform var(--duration-normal) var(--ease-out);
+}
+.card-hover:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+}
+
+/* KPI card accent stripe animation */
+@keyframes stripeExpand {
+  from { height: 0; opacity: 0; }
+  to   { height: 60%; opacity: 1; }
+}
+
+.kpi-stripe {
+  animation: stripeExpand var(--duration-enter) var(--ease-out) both;
+}
+
+/* Risk bar fill animation */
+@keyframes barFill {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+.risk-bar-fill {
+  transform-origin: left center;
+  animation: barFill var(--duration-slow) var(--ease-out) both;
+}
+
+/* Live pulse dot */
+.live-dot {
+  position: relative;
+  display: inline-flex;
+}
+
+.live-dot::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pingRing 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Subtle grid pattern — for login / hero areas */
+.grid-pattern {
+  background-image:
+    linear-gradient(rgb(var(--border) / 0.5) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--border) / 0.5) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Premium divider with amber fade */
+.divider-amber {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(var(--accent-500) / 0.4),
+    transparent
+  );
+}
+
+/* Glow effect for primary accent elements */
+.accent-glow {
+  box-shadow: 0 0 0 1px rgb(var(--accent-500) / 0.3),
+              0 4px 16px -4px rgb(var(--accent-600) / 0.4);
+}
+
+/* Status bar — thin indicator bar at top of card */
+.status-bar-red   { border-top: 2px solid rgb(220 38 38); }
+.status-bar-amber { border-top: 2px solid rgb(var(--accent-500)); }
+.status-bar-green { border-top: 2px solid rgb(22 163 74); }
+.status-bar-blue  { border-top: 2px solid rgb(37 99 235); }
+
+/* ── Focus ring override — amber brand ── */
+.ring-accent {
+  --tw-ring-color: rgb(var(--accent-500));
 }

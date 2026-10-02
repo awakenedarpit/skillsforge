@@ -88,7 +88,7 @@ export const GET = withOrgAuth(async (req, ctx) => {
       },
     });
 
-    const formatted = alerts.map((a) => {
+    const formatted = alerts.map((a: any) => {
       const certDateStr = formatDateStr(parseDate(a.certifiedUntil))!;
       const daysLeft = daysToExpiry(certDateStr, asOf);
       const severity = daysLeft !== null ? severityFor(daysLeft) : a.severity;

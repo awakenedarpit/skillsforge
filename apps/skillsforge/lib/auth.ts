@@ -38,7 +38,8 @@ export const authOptions: NextAuthOptions = {
                 name: user.name,
                 orgId: DEMO_ORG.id,
                 membershipRole: user.role,
-                isSuperAdmin: false,
+                isSuperAdmin: ("isSuperAdmin" in user && Boolean(user.isSuperAdmin)) || user.role === "super_admin",
+                operatorId: ("operatorId" in user && typeof user.operatorId === "string") ? user.operatorId : null,
               };
             },
           }),
@@ -51,20 +52,22 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
-        token.orgId = (user as any).orgId ?? DEMO_ORG.id;
-        token.membershipRole = (user as any).membershipRole ?? "member";
-        token.isSuperAdmin = (user as any).isSuperAdmin ?? false;
+        token.orgId = user.orgId ?? DEMO_ORG.id;
+        token.membershipRole = user.membershipRole ?? "member";
+        token.isSuperAdmin = user.isSuperAdmin ?? false;
+        token.operatorId = user.operatorId ?? null;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string;
-        session.user.email = token.email as string;
-        session.user.name = token.name as string;
+        session.user.id = (token.id as string) || session.user.id;
+        session.user.email = token.email ?? session.user.email;
+        session.user.name = token.name ?? session.user.name;
         session.user.orgId = (token.orgId as string) || DEMO_ORG.id;
         session.user.membershipRole = (token.membershipRole as string) || "member";
         session.user.isSuperAdmin = Boolean(token.isSuperAdmin);
+        session.user.operatorId = (token.operatorId as string | null) ?? null;
       }
       return session;
     },

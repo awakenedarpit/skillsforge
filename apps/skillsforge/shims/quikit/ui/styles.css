@@ -1,26 +1,110 @@
 /* LOCAL STAND-IN for @quikit/ui/styles.css: delete at integration */
+
+/* ═══════════════════════════════════════════════════════════════════
+   SKILLSFORGE DESIGN SYSTEM — Token Layer v2
+   Concept: Industrial precision command console · Premium dark-default
+   60% deep charcoal · 30% elevated surface · 10% amber signal
+   ═══════════════════════════════════════════════════════════════════ */
+
 :root {
-  --accent-50: 239 246 255;
-  --accent-100: 219 234 254;
-  --accent-200: 191 219 254;
-  --accent-300: 147 197 253;
-  --accent-400: 96 165 250;
-  --accent-500: 59 130 246;
-  --accent-600: 37 99 235;
-  --accent-700: 29 78 216;
-  --accent-800: 30 64 175;
-  --accent-900: 30 58 138;
+  /* ─── Accent scale (signal amber) ─── */
+  --accent-50:  255 251 235;
+  --accent-100: 254 243 199;
+  --accent-200: 253 230 138;
+  --accent-300: 252 211  77;
+  --accent-400: 251 191  36;
+  --accent-500: 245 158  11;
+  --accent-600: 217 119   6;
+  --accent-700: 180  83   9;
+  --accent-800: 146  64  14;
+  --accent-900: 120  53  15;
+
+  /* ─── Surface tokens — light mode ─── */
+  --bg:              250 249 247;
+  --surface:         255 255 255;
+  --surface-raised:  248 247 244;
+  --surface-overlay: 245 243 239;
+  --border:          226 222 215;
+  --border-strong:   200 196 188;
+
+  /* ─── Text tokens — light mode ─── */
+  --text:            23 23 21;
+  --text-secondary:  82 79 72;
+  --text-muted:      120 116 107;
+
+  /* ─── Signal tokens ─── */
+  --signal-red:      220 38 38;
+  --signal-amber:    217 119 6;
+  --signal-green:    22 163 74;
+  --signal-blue:     37 99 235;
+
+  /* ─── Shadows — warm amber-tinted ─── */
+  --shadow-xs: 0 1px 2px 0 rgb(90 80 50 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(90 80 50 / 0.08), 0 1px 2px -1px rgb(90 80 50 / 0.06);
+  --shadow-md: 0 4px 12px -2px rgb(90 80 50 / 0.1), 0 2px 6px -2px rgb(90 80 50 / 0.07);
+  --shadow-lg: 0 10px 30px -4px rgb(90 80 50 / 0.12), 0 4px 10px -2px rgb(90 80 50 / 0.08);
+  --shadow-xl: 0 20px 50px -8px rgb(90 80 50 / 0.16), 0 8px 20px -4px rgb(90 80 50 / 0.10);
+
+  /* ─── Motion tokens ─── */
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:     cubic-bezier(0.4, 0, 1, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-micro:  120ms;
+  --duration-normal: 220ms;
+  --duration-enter:  300ms;
+  --duration-slow:   500ms;
+
+  /* ─── Radius tokens ─── */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
+  --radius-2xl: 1.5rem;
+
+  /* ─── Sidebar width ─── */
+  --sidebar-w: 15rem;
 }
 
+/* ─────────────────────────────────────────────────────────
+   DARK MODE — warm charcoal, not inverted
+   ───────────────────────────────────────────────────────── */
 .dark {
-  --accent-50: 30 58 138;
-  --accent-100: 30 64 175;
-  --accent-200: 29 78 216;
-  --accent-300: 37 99 235;
-  --accent-400: 59 130 246;
-  --accent-500: 96 165 250;
-  --accent-600: 147 197 253;
-  --accent-700: 191 219 254;
-  --accent-800: 219 234 254;
-  --accent-900: 239 246 255;
+  /* Accent — slightly lifted chroma in dark */
+  --accent-50:  78 43 4;
+  --accent-100: 113 63 18;
+  --accent-200: 146 64 14;
+  --accent-300: 180 83 9;
+  --accent-400: 217 119 6;
+  --accent-500: 245 158 11;
+  --accent-600: 251 191 36;
+  --accent-700: 252 211 77;
+  --accent-800: 253 230 138;
+  --accent-900: 254 243 199;
+
+  /* Surface tokens — raise = lighter, never invert */
+  --bg:              14 13 11;
+  --surface:         21 20 17;
+  --surface-raised:  30 28 24;
+  --surface-overlay: 38 36 30;
+  --border:          40 38 33;
+  --border-strong:   56 53 46;
+
+  /* Text tokens */
+  --text:            240 237 230;
+  --text-secondary:  176 172 162;
+  --text-muted:      114 110 102;
+
+  /* Signals — adjusted for dark readability */
+  --signal-red:      248 113 113;
+  --signal-amber:    251 191 36;
+  --signal-green:    74 222 128;
+  --signal-blue:     96 165 250;
+
+  /* Shadows — deeper in dark */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.2);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.2);
+  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.4), 0 2px 6px -2px rgb(0 0 0 / 0.25);
+  --shadow-lg: 0 10px 30px -4px rgb(0 0 0 / 0.5), 0 4px 10px -2px rgb(0 0 0 / 0.3);
+  --shadow-xl: 0 20px 50px -8px rgb(0 0 0 / 0.6), 0 8px 20px -4px rgb(0 0 0 / 0.4);
 }

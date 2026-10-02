@@ -4,7 +4,7 @@ import { withOrgAuth } from "@/lib/api/withOrgAuth";
 import { validationError } from "@/lib/api/validationError";
 import { db } from "@/lib/db";
 import { today, formatDateStr, parseDate } from "@/lib/domain/rules";
-import { simulateRemoval } from "@/lib/domain/coverage";
+import { simulateRemoval, computeResignationReplacements } from "@/lib/domain/coverage";
 import {
   DEMO_MACHINES,
   DEMO_OPERATORS,
@@ -24,8 +24,41 @@ const querySchema = z.object({
  * GET /api/simulate/resignation?operatorId=&skillId=&asOf=
  * MVP-1: Read-only simulation of an operator departure or skill qualification removal.
  * Returns before vs after coverage heatmaps, newly red cells, worsened cells,
- * and machines that lose their last qualified trainer.
+ * machines that lose their last qualified trainer, and alternative operators who can take over their work.
  */
+interface ShiftRow {
+  id: string;
+  code: string;
+  startTime: string;
+  endTime: string;
+}
+
+interface SkillRow {
+  id: string;
+  code: string;
+  name: string;
+  nameHi: string | null;
+  lineKey: string;
+  criticality: number;
+  isActive: boolean;
+}
+
+interface OperatorRow {
+  id: string;
+  name: string;
+  employeeCode: string;
+  shiftId: string;
+  isActive: boolean;
+}
+
+interface RecordRow {
+  operatorId: string;
+  skillId: string;
+  level: number;
+  issuedOn: Date | string | null;
+  certifiedUntil: Date | string | null;
+}
+
 export const GET = withOrgAuth(async (req, ctx) => {
   const { searchParams } = new URL(req.url);
   const parsed = querySchema.safeParse(Object.fromEntries(searchParams.entries()));
@@ -38,7 +71,12 @@ export const GET = withOrgAuth(async (req, ctx) => {
   const asOf = parsed.data.asOf || today();
 
   try {
-    const [shifts, skills, operators, records] = await Promise.all([
+    const [shifts, skills, operators, records]: [
+      ShiftRow[],
+      SkillRow[],
+      OperatorRow[],
+      RecordRow[]
+    ] = await Promise.all([
       db.sfShift.findMany({
         where: { orgId: ctx.orgId },
         orderBy: { code: "asc" },
@@ -100,6 +138,16 @@ export const GET = withOrgAuth(async (req, ctx) => {
       skillId || null
     );
 
+    const replacementsResult = computeResignationReplacements(
+      operators,
+      skills,
+      shifts,
+      domainRecords,
+      operatorId,
+      asOf,
+      skillId || null
+    );
+
     const skillsMap = new Map(skills.map((s) => [s.id, s]));
     const shiftsMap = new Map(shifts.map((s) => [s.id, s]));
 
@@ -113,7 +161,14 @@ export const GET = withOrgAuth(async (req, ctx) => {
           newlyRedCount: result.newlyRed.length,
           worsenedCount: result.worsened.length,
           lostTrainersCount: result.lostAllTrainers.length,
+          affectedSkillsCount: replacementsResult.summary.affectedSkillsCount,
+          coveredSameShiftCount: replacementsResult.summary.coveredSameShiftCount,
+          crossShiftOnlyCount: replacementsResult.summary.crossShiftOnlyCount,
+          criticalUncoveredCount: replacementsResult.summary.criticalUncoveredCount,
+          totalAlternativesAvailable: replacementsResult.summary.totalAlternativesAvailable,
         },
+        replacementSummary: replacementsResult.summary,
+        replacements: replacementsResult.replacements,
         newlyRed: result.newlyRed.map((nr) => ({
           ...nr,
           skill: skillsMap.get(nr.skillId),
@@ -139,11 +194,23 @@ export const GET = withOrgAuth(async (req, ctx) => {
       );
     }
 
+    const demoRecords = getDemoSkillRecords(asOf);
+
     const result = simulateRemoval(
       DEMO_OPERATORS,
       DEMO_MACHINES,
       DEMO_SHIFTS,
-      getDemoSkillRecords(asOf),
+      demoRecords,
+      operatorId,
+      asOf,
+      skillId || null
+    );
+
+    const replacementsResult = computeResignationReplacements(
+      DEMO_OPERATORS,
+      DEMO_MACHINES,
+      DEMO_SHIFTS,
+      demoRecords,
       operatorId,
       asOf,
       skillId || null
@@ -162,7 +229,14 @@ export const GET = withOrgAuth(async (req, ctx) => {
           newlyRedCount: result.newlyRed.length,
           worsenedCount: result.worsened.length,
           lostTrainersCount: result.lostAllTrainers.length,
+          affectedSkillsCount: replacementsResult.summary.affectedSkillsCount,
+          coveredSameShiftCount: replacementsResult.summary.coveredSameShiftCount,
+          crossShiftOnlyCount: replacementsResult.summary.crossShiftOnlyCount,
+          criticalUncoveredCount: replacementsResult.summary.criticalUncoveredCount,
+          totalAlternativesAvailable: replacementsResult.summary.totalAlternativesAvailable,
         },
+        replacementSummary: replacementsResult.summary,
+        replacements: replacementsResult.replacements,
         newlyRed: result.newlyRed.map((nr) => ({
           ...nr,
           skill: skillsMap.get(nr.skillId),

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { withOrgAuth } from "@/lib/api/withOrgAuth";
 import { validationError } from "@/lib/api/validationError";
@@ -12,13 +12,52 @@ export const dynamic = "force-dynamic";
 const querySchema = z.object({
   shiftId: z.string().optional(),
   asOf: z.string().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(200).default(50),
 });
 
+interface CellData {
+  operatorId: string;
+  skillId: string;
+  level: number;
+  effectiveLevel: number;
+  issuedOn: string | null;
+  certifiedUntil: string | null;
+  daysToExpiry: number | null;
+  isExpiringSoon: boolean;
+  isExpired: boolean;
+  lastChange: {
+    action: string;
+    by: string | null;
+    at: Date | string;
+    reason: string | null;
+  } | null;
+}
+
+interface HistoryItem {
+  operatorId: string;
+  skillId: string;
+  action: string;
+  newLevel: number | null;
+  changedByName: string | null;
+  changedAt: Date;
+  reason: string | null;
+}
+
+interface OperatorSkillItem {
+  operatorId: string;
+  skillId: string;
+  level: number;
+  issuedOn: Date | null;
+  certifiedUntil: Date | null;
+  updatedAt: Date;
+}
+
 /**
- * GET /api/grid?shiftId=&asOf=
+ * GET /api/grid?shiftId=&asOf=&page=1&pageSize=50
  * Returns the operators x machines 2-D matrix.
- * Note: This returns a bounded matrix payload (15-50 operators x 8-20 machines),
- * not an unbounded pagination list, per Section 6 API specifications.
+ * Supports pagination (page, pageSize) and role-based row filtering:
+ * Non-admin members only see their own row (or empty if operatorId is null).
  */
 export const GET = withOrgAuth(async (req, ctx) => {
   const { searchParams } = new URL(req.url);
@@ -30,9 +69,54 @@ export const GET = withOrgAuth(async (req, ctx) => {
 
   const asOf = parsed.data.asOf || today();
   const shiftId = parsed.data.shiftId;
+  const page = parsed.data.page;
+  const pageSize = parsed.data.pageSize;
+
+  // Role-based filtering: non-admin member sees only their own operator row
+  const isMember = ctx.userRole === "member" && !ctx.isSuperAdmin;
 
   try {
-    const [shifts, skills, operators, records, histories] = await Promise.all([
+    if (isMember && !ctx.operatorId) {
+      // Member without an operator ID gets an empty result
+      const [shifts, skills] = await Promise.all([
+        db.sfShift.findMany({
+          where: { orgId: ctx.orgId },
+          orderBy: { code: "asc" },
+          select: { id: true, code: true, startTime: true, endTime: true },
+        }),
+        db.sfSkill.findMany({
+          where: { orgId: ctx.orgId, isActive: true },
+          orderBy: { code: "asc" },
+          select: { id: true, code: true, name: true, nameHi: true, lineKey: true, criticality: true },
+        }),
+      ]);
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          asOf,
+          shifts,
+          skills,
+          operators: [],
+          matrix: {},
+          pagination: {
+            page,
+            pageSize,
+            total: 0,
+            totalPages: 1,
+          },
+        },
+      });
+    }
+
+    const operatorWhere = {
+      orgId: ctx.orgId,
+      isActive: true,
+      ...(shiftId ? { shiftId } : {}),
+      ...(isMember ? { id: ctx.operatorId! } : {}),
+    };
+
+    const [shifts, skills, totalOperators, operators, records, histories] = await Promise.all([
       db.sfShift.findMany({
         where: { orgId: ctx.orgId },
         orderBy: { code: "asc" },
@@ -43,13 +127,12 @@ export const GET = withOrgAuth(async (req, ctx) => {
         orderBy: { code: "asc" },
         select: { id: true, code: true, name: true, nameHi: true, lineKey: true, criticality: true },
       }),
+      db.sfOperator.count({ where: operatorWhere }),
       db.sfOperator.findMany({
-        where: {
-          orgId: ctx.orgId,
-          isActive: true,
-          ...(shiftId ? { shiftId } : {}),
-        },
+        where: operatorWhere,
         orderBy: [{ shiftId: "asc" }, { employeeCode: "asc" }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
         select: {
           id: true,
           employeeCode: true,
@@ -86,7 +169,7 @@ export const GET = withOrgAuth(async (req, ctx) => {
     ]);
 
     // Build latest history lookup by operatorId_skillId
-    const latestHistoryMap = new Map<string, any>();
+    const latestHistoryMap = new Map<string, HistoryItem>();
     for (const h of histories) {
       const key = `${h.operatorId}_${h.skillId}`;
       if (!latestHistoryMap.has(key)) {
@@ -95,12 +178,12 @@ export const GET = withOrgAuth(async (req, ctx) => {
     }
 
     // Build matrix lookup
-    const recordMap = new Map<string, any>();
+    const recordMap = new Map<string, OperatorSkillItem>();
     for (const r of records) {
       recordMap.set(`${r.operatorId}_${r.skillId}`, r);
     }
 
-    const matrix: Record<string, Record<string, any>> = {};
+    const matrix: Record<string, Record<string, CellData>> = {};
 
     for (const op of operators) {
       matrix[op.id] = {};
@@ -137,6 +220,8 @@ export const GET = withOrgAuth(async (req, ctx) => {
       }
     }
 
+    const totalPages = Math.max(1, Math.ceil(totalOperators / pageSize));
+
     return NextResponse.json({
       success: true,
       data: {
@@ -145,25 +230,47 @@ export const GET = withOrgAuth(async (req, ctx) => {
         skills,
         operators,
         matrix,
+        pagination: {
+          page,
+          pageSize,
+          total: totalOperators,
+          totalPages,
+        },
       },
     });
   } catch (err: unknown) {
-    // In-memory fallback if DB is unreachable
-    let ops = DEMO_OPERATORS;
+    const shifts = DEMO_SHIFTS;
+    const shiftMap = new Map(shifts.map((s) => [s.id, s]));
+    let ops = DEMO_OPERATORS.map((o) => ({
+      ...o,
+      shift: o.shift || { code: shiftMap.get(o.shiftId)?.code || "A" },
+    }));
+
+    if (isMember) {
+      if (!ctx.operatorId) {
+        ops = [];
+      } else {
+        ops = ops.filter((o) => o.id === ctx.operatorId);
+      }
+    }
+
     if (shiftId) ops = ops.filter((o) => o.shiftId === shiftId);
 
+    const totalOps = ops.length;
+    const totalPages = Math.max(1, Math.ceil(totalOps / pageSize));
+    const pagedOps = ops.slice((page - 1) * pageSize, page * pageSize);
+
     const skills = DEMO_MACHINES;
-    const shifts = DEMO_SHIFTS;
     const records = getDemoSkillRecords(asOf);
 
-    const recordMap = new Map<string, any>();
+    const recordMap = new Map<string, { operatorId: string; skillId: string; level: number; certifiedUntil?: string | Date; issuedOn?: string | Date }>();
     for (const r of records) {
       recordMap.set(`${r.operatorId}_${r.skillId}`, r);
     }
 
-    const matrix: Record<string, Record<string, any>> = {};
+    const matrix: Record<string, Record<string, CellData>> = {};
 
-    for (const op of ops) {
+    for (const op of pagedOps) {
       matrix[op.id] = {};
       for (const sk of skills) {
         const key = `${op.id}_${sk.id}`;
@@ -201,8 +308,14 @@ export const GET = withOrgAuth(async (req, ctx) => {
         asOf,
         shifts,
         skills,
-        operators: ops,
+        operators: pagedOps,
         matrix,
+        pagination: {
+          page,
+          pageSize,
+          total: totalOps,
+          totalPages,
+        },
       },
     });
   }

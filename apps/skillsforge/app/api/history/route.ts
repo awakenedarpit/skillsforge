@@ -62,43 +62,14 @@ export const GET = withOrgAuth(async (req, ctx) => {
     const res = buildPaginationResponse(items, total, pagination);
     return NextResponse.json({ success: true, data: res });
   } catch (err: unknown) {
-    // In-memory fallback if DB is unreachable
-    const fallbackHistory = [
-      {
-        id: "hist-seed-1",
-        operatorId: operatorId || "op-001",
-        skillId: skillId || "sk-cnc-l1",
-        action: "SEED",
-        oldLevel: null,
-        newLevel: 4,
-        oldIssuedOn: null,
-        newIssuedOn: "2025-01-01",
-        oldCertifiedUntil: null,
-        newCertifiedUntil: "2027-01-01",
-        changedBy: "usr-asha-1",
-        changedByName: "Asha Verma",
-        changedAt: new Date().toISOString(),
-        reason: "Initial qualification as master trainer",
-      },
-      {
-        id: "hist-seed-2",
-        operatorId: operatorId || "op-002",
-        skillId: skillId || "sk-cnc-l1",
-        action: "SEED",
-        oldLevel: null,
-        newLevel: 2,
-        oldIssuedOn: null,
-        newIssuedOn: "2025-01-01",
-        oldCertifiedUntil: null,
-        newCertifiedUntil: "2026-10-05",
-        changedBy: "usr-asha-1",
-        changedByName: "Asha Verma",
-        changedAt: new Date().toISOString(),
-        reason: "Initial qualification record",
-      },
-    ];
+    const { getDemoHistory } = await import("@/lib/demo/seedData");
+    let list = getDemoHistory();
+    if (operatorId) list = list.filter((h: any) => h.operatorId === operatorId);
+    if (skillId) list = list.filter((h: any) => h.skillId === skillId);
 
-    const res = buildPaginationResponse(fallbackHistory, fallbackHistory.length, pagination);
+    const total = list.length;
+    const paged = list.slice(skip, skip + take);
+    const res = buildPaginationResponse(paged, total, pagination);
     return NextResponse.json({ success: true, data: res });
   }
 });

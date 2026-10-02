@@ -6,7 +6,7 @@ import { validationError } from "@/lib/api/validationError";
 import { canEditSkillGrid } from "@/lib/api/skillsforgePermissions";
 import { writeAuditLog } from "@/lib/api/auditLog";
 import { runExpiryCheck } from "@/lib/api/expiryJob";
-import { rateLimitAsync } from "@quikit/shared/rateLimit";
+import { checkRateLimit } from "@/lib/api/rateLimiter";
 import { DEMO_ORG } from "@/lib/demo/seedData";
 
 export const dynamic = "force-dynamic";
@@ -55,11 +55,19 @@ export async function POST(req: NextRequest) {
     actorRole = session.user.membershipRole || "app_admin";
   }
 
-  // Rate limiting check
-  const rateLimitKey = `expiry_job_${orgId}_${actorId || "internal"}`;
-  const rateLimit = await rateLimitAsync(rateLimitKey, 10, 60);
+  // Rate limiting check: keyed by user id plus route (or internal:route), limit 5 reqs per minute
+  const rateLimitKey = `${actorId || "internal"}:/api/jobs/expiry-check`;
+  const rateLimit = checkRateLimit(rateLimitKey, 5, 60);
   if (!rateLimit.allowed) {
-    return NextResponse.json({ success: false, error: "Too many requests. Please wait before retrying." }, { status: 429 });
+    return NextResponse.json(
+      { success: false, error: "Too many requests. Please wait before retrying." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": rateLimit.retryAfterSeconds.toString(),
+        },
+      }
+    );
   }
 
   let body = {};

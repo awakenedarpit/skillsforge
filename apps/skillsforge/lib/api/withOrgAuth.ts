@@ -8,6 +8,7 @@ export interface OrgAuthContext<TParams = Record<string, string | string[]>> {
   userName: string;
   userRole: string;
   isSuperAdmin: boolean;
+  operatorId: string | null;
   params: TParams;
 }
 
@@ -40,6 +41,7 @@ export function withOrgAuth<TParams = Record<string, string | string[]>>(
         userName: session.user.name || "Unknown User",
         userRole: session.user.membershipRole || "member",
         isSuperAdmin: Boolean(session.user.isSuperAdmin),
+        operatorId: session.user.operatorId ?? null,
         params: (context?.params ?? {}) as TParams,
       };
 

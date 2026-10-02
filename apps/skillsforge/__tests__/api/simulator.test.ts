@@ -58,5 +58,25 @@ describe("MVP-1: Simulator API (GET /api/simulate/resignation)", () => {
     // Verify cell structures
     expect(json.data.before.cells.length).toBe(24);
     expect(json.data.after.cells.length).toBe(24);
+
+    // Verify replacement alternatives feature
+    expect(json.data.replacements).toBeDefined();
+    expect(json.data.replacements.length).toBeGreaterThan(0);
+    expect(json.data.replacementSummary).toBeDefined();
+    expect(json.data.replacementSummary.affectedSkillsCount).toBeGreaterThan(0);
+
+    const firstReplacement = json.data.replacements[0];
+    expect(firstReplacement.skillId).toBeDefined();
+    expect(firstReplacement.skillCode).toBeDefined();
+    expect(firstReplacement.resigningOperatorLevel).toBeGreaterThanOrEqual(1);
+    expect(Array.isArray(firstReplacement.alternatives)).toBe(true);
+
+    if (firstReplacement.alternatives.length > 0) {
+      const alt = firstReplacement.alternatives[0];
+      expect(alt.operatorId).toBeDefined();
+      expect(alt.name).toBeDefined();
+      expect(alt.level).toBeGreaterThanOrEqual(2);
+      expect(alt.recommendationTag).toBeDefined();
+    }
   });
 });

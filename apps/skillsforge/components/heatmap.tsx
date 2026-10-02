@@ -25,6 +25,7 @@ export function CoverageHeatmap({
 }: HeatmapProps) {
   const { t, locale } = useT();
   const [forecastDays, setForecastDays] = useState<number>(0);
+  const [workstationFilter, setWorkstationFilter] = useState<"ALL" | "RED" | "SPOF">("ALL");
   const [selectedCell, setSelectedCell] = useState<{
     cell: CoverageCellView;
     skill: SkillDomainView;
@@ -42,7 +43,7 @@ export function CoverageHeatmap({
       return json.data;
     },
     enabled: !overrideData,
-    refetchInterval: 15000,
+    refetchInterval: false,
   });
 
   const data = overrideData || fetchedData;
@@ -79,14 +80,14 @@ export function CoverageHeatmap({
     <div className="space-y-4">
       {/* Forecast Slider Banner (MVP-2) */}
       {showForecastSlider && (
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="rounded-xl p-4 shadow-token-sm" style={{ backgroundColor: "rgb(var(--surface))", border: "1px solid rgb(var(--border))" }}>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
             <div>
-              <span className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+              <span className="text-sm font-bold flex items-center gap-1.5" style={{ color: "rgb(var(--text))" }}>
                 <Calendar className="w-4 h-4 text-accent-600 dark:text-accent-400" />
                 {t("dashboard.forecast")}
               </span>
-              <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5">
+              <span className="text-xs block mt-0.5" style={{ color: "rgb(var(--text-muted))" }}>
                 {forecastDays === 0
                   ? t("common.today") + ` (${asOf})`
                   : `+${forecastDays} days (${effectiveAsOf})`}
@@ -117,7 +118,7 @@ export function CoverageHeatmap({
               step={1}
               aria-label="Coverage forecast slider"
             />
-            <div className="flex justify-between text-[11px] text-slate-400 mt-2 font-mono">
+            <div className="flex justify-between text-[11px] mt-2 font-mono" style={{ color: "rgb(var(--text-muted))" }}>
               <span>{t("common.today")}</span>
               <span>+30d</span>
               <span>+60d</span>
@@ -126,7 +127,7 @@ export function CoverageHeatmap({
           </div>
 
           {forecastDays > 0 && (
-            <div className="mt-3 flex items-center justify-between rounded-lg bg-amber-50 p-2.5 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50">
+            <div className="mt-3 flex items-center justify-between rounded-lg p-2.5 text-xs" style={{ backgroundColor: "rgb(var(--accent-500) / 0.08)", color: "rgb(var(--accent-700))", border: "1px solid rgb(var(--accent-500) / 0.2)" }}>
               <span className="flex items-center gap-1.5 font-medium">
                 <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
                 {t("dashboard.forecastBanner")}
@@ -134,7 +135,7 @@ export function CoverageHeatmap({
               <button
                 type="button"
                 onClick={() => setForecastDays(0)}
-                className="underline font-semibold hover:text-amber-900 dark:hover:text-amber-200"
+                className="underline font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-500 rounded"
               >
                 {t("dashboard.resetToday")}
               </button>
@@ -143,11 +144,63 @@ export function CoverageHeatmap({
         </div>
       )}
 
+      {/* Workstation Filter Controls */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant={workstationFilter === "ALL" ? "primary" : "outline"}
+            onClick={() => setWorkstationFilter("ALL")}
+            className="text-xs"
+          >
+            {t("dashboard.allStations")} ({skills.length})
+          </Button>
+
+          <Button
+            size="sm"
+            variant={workstationFilter === "RED" ? "primary" : "outline"}
+            onClick={() => setWorkstationFilter("RED")}
+            className={`text-xs ${
+              workstationFilter !== "RED"
+                ? "text-red-700 bg-red-50 hover:bg-red-100 border-red-200 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
+                : ""
+            }`}
+          >
+            <AlertTriangle className="w-3.5 h-3.5 mr-1 text-red-500" />
+            {t("dashboard.redCellsOnly")}
+          </Button>
+
+          <Button
+            size="sm"
+            variant={workstationFilter === "SPOF" ? "primary" : "outline"}
+            onClick={() => setWorkstationFilter("SPOF")}
+            className={`text-xs ${
+              workstationFilter !== "SPOF"
+                ? "text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-200 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300"
+                : ""
+            }`}
+          >
+            <ShieldAlert className="w-3.5 h-3.5 mr-1 text-amber-500" />
+            {t("dashboard.spofsOnly")}
+          </Button>
+        </div>
+
+        {workstationFilter !== "ALL" && (
+          <button
+            type="button"
+            onClick={() => setWorkstationFilter("ALL")}
+            className="text-xs underline font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-500 rounded" style={{ color: "rgb(var(--text-muted))" }}
+          >
+            {t("common.close")}
+          </button>
+        )}
+      </div>
+
       {/* Heatmap Table */}
-      <div className="w-full overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="w-full overflow-x-auto rounded-xl shadow-token-sm" style={{ backgroundColor: "rgb(var(--surface))", border: "1px solid rgb(var(--border))" }}>
         <table className="w-full border-collapse text-left">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/80 text-xs font-semibold text-slate-600 uppercase tracking-wider dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400">
+            <tr className="text-xs font-semibold uppercase tracking-wider" style={{ borderBottom: "1px solid rgb(var(--border))", backgroundColor: "rgb(var(--surface-raised))", color: "rgb(var(--text-muted))" }}>
               <th className={compact ? "p-2 min-w-[140px]" : "p-3.5 min-w-[180px]"}>
                 {t("common.machine")}
               </th>
@@ -156,11 +209,11 @@ export function CoverageHeatmap({
                   key={shift.id}
                   className={compact ? "p-2 text-center min-w-[80px]" : "p-3.5 text-center min-w-[120px]"}
                 >
-                  <span className="font-bold text-slate-800 dark:text-slate-200">
+                  <span className="font-bold" style={{ color: "rgb(var(--text))" }}>
                     {t("common.shift")} {shift.code}
                   </span>
                   {!compact && (
-                    <span className="block text-[10px] font-normal text-slate-400 lowercase font-mono">
+                    <span className="block text-[10px] font-normal lowercase font-mono" style={{ color: "rgb(var(--text-muted))" }}>
                       {shift.startTime} - {shift.endTime}
                     </span>
                   )}
@@ -171,8 +224,23 @@ export function CoverageHeatmap({
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-sm">
-            {skills.map((skill) => {
+          <tbody className="divide-y text-sm" style={{ borderColor: "rgb(var(--border))" }}>
+            {skills
+              .filter((skill) => {
+                if (workstationFilter === "ALL") return true;
+                if (workstationFilter === "SPOF") {
+                  const tot = totalsMap.get(skill.id);
+                  return tot?.isSpof;
+                }
+                if (workstationFilter === "RED") {
+                  return shifts.some((shift) => {
+                    const cell = cellMap.get(`${skill.id}_${shift.id}`);
+                    return cell && cell.status === "RED";
+                  });
+                }
+                return true;
+              })
+              .map((skill) => {
               const skillCells = shifts
                 .map((shift) => cellMap.get(`${skill.id}_${shift.id}`))
                 .filter((c): c is CoverageCellView => Boolean(c));
@@ -184,12 +252,14 @@ export function CoverageHeatmap({
               return (
                 <tr
                   key={skill.id}
-                  className="hover:bg-slate-50/50 dark:hover:bg-slate-850/40 transition-colors"
+                  className="transition-colors duration-[80ms]"
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = "rgb(var(--surface-raised))"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = "transparent"; }}
                 >
                   {/* Machine details */}
                   <td className={compact ? "p-2" : "p-3.5"}>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold font-mono text-xs text-slate-900 dark:text-slate-100">
+                      <span className="font-bold font-mono text-xs" style={{ color: "rgb(var(--text))" }}>
                         {skill.code}
                       </span>
                       <Badge
@@ -200,7 +270,7 @@ export function CoverageHeatmap({
                         Risk {score}
                       </Badge>
                     </div>
-                    <span className="text-xs text-slate-600 dark:text-slate-300 block truncate max-w-[170px] mt-0.5">
+                    <span className="text-xs block truncate max-w-[170px] mt-0.5" style={{ color: "rgb(var(--text-secondary))" }}>
                       {displayName}
                     </span>
                   </td>
@@ -224,15 +294,13 @@ export function CoverageHeatmap({
                               setSelectedCell({ cell, skill, shift });
                             }
                           }}
-                          className={`w-full text-center rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                            compact ? "p-2" : "p-3"
-                          } ${
-                            isRed
-                              ? "bg-red-50/90 text-red-900 border border-red-300 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800 cell-glow-red hover:bg-red-100"
-                              : isAmber
-                              ? "bg-amber-50 text-amber-900 border border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 hover:bg-amber-100"
-                              : "bg-emerald-50 text-emerald-900 border border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 hover:bg-emerald-100"
-                          }`}
+                          className={`w-full text-center rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-accent-500 ${compact ? "p-2" : "p-3"} ${isRed ? "cell-glow-red" : ""}`}
+                          style={isRed
+                            ? { backgroundColor: "rgb(220 38 38 / 0.08)", color: "rgb(185 28 28)", border: "1px solid rgb(220 38 38 / 0.25)" }
+                            : isAmber
+                            ? { backgroundColor: "rgb(var(--accent-500) / 0.08)", color: "rgb(var(--accent-700))", border: "1px solid rgb(var(--accent-500) / 0.2)" }
+                            : { backgroundColor: "rgb(22 163 74 / 0.08)", color: "rgb(21 128 61)", border: "1px solid rgb(22 163 74 / 0.2)" }
+                          }
                         >
                           <div className="flex items-center justify-center gap-1">
                             {isRed && (
@@ -260,7 +328,7 @@ export function CoverageHeatmap({
 
                           {/* Trainer badge in cell */}
                           {cell && cell.trainerCount > 0 && !compact && (
-                            <span className="inline-block mt-1 px-1.5 py-0.2 text-[9px] font-bold rounded bg-white/70 text-slate-700 dark:bg-slate-900/60 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                            <span className="inline-block mt-1 px-1.5 py-0.5 text-[9px] font-bold rounded" style={{ backgroundColor: "rgb(var(--surface-raised))", color: "rgb(var(--text-muted))", border: "1px solid rgb(var(--border))" }}>
                               ★ {cell.trainerCount}
                             </span>
                           )}
@@ -269,7 +337,7 @@ export function CoverageHeatmap({
                           {cell?.turnsRedOn && !compact && (() => {
                             const days = daysToExpiry(cell.turnsRedOn, effectiveAsOf);
                             return (
-                              <span className="block text-[9px] text-red-600 dark:text-red-400 font-medium mt-1">
+                              <span className="block text-[9px] font-medium mt-1" style={{ color: "rgb(220 38 38)" }}>
                                 {locale === "hi"
                                   ? `${days !== null && days >= 0 ? `${days}d में` : cell.turnsRedOn} लाल होगा`
                                   : `turns red ${days !== null && days >= 0 ? `in ${days}d` : cell.turnsRedOn}`}
@@ -283,16 +351,16 @@ export function CoverageHeatmap({
 
                   {/* Totals column */}
                   <td className={compact ? "p-2 text-center" : "p-3.5 text-center"}>
-                    <div className="font-extrabold font-mono text-base text-slate-800 dark:text-slate-200">
+                    <div className="font-extrabold font-mono text-base" style={{ color: "rgb(var(--text))" }}>
                       {totalView?.totalQualified ?? 0}
                     </div>
                     {totalView?.isSpof && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 dark:text-red-400 uppercase mt-0.5">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase mt-0.5" style={{ color: "rgb(220 38 38)" }}>
                         <ShieldAlert className="w-3 h-3" /> SPOF
                       </span>
                     )}
                     {!compact && totalView && totalView.trainerCount > 0 && (
-                      <span className="block text-[10px] text-slate-500 dark:text-slate-400">
+                      <span className="block text-[10px]" style={{ color: "rgb(var(--text-muted))" }}>
                         {totalView.trainerCount} trainer{totalView.trainerCount > 1 ? "s" : ""}
                       </span>
                     )}
@@ -305,8 +373,8 @@ export function CoverageHeatmap({
       </div>
 
       {/* Heatmap Legend */}
-      <div className="flex flex-wrap items-center justify-between text-xs text-slate-600 dark:text-slate-400 px-1 pt-1 gap-3">
-        <span className="font-semibold text-slate-700 dark:text-slate-300">
+      <div className="flex flex-wrap items-center justify-between text-xs px-1 pt-1 gap-3" style={{ color: "rgb(var(--text-muted))" }}>
+        <span className="font-semibold" style={{ color: "rgb(var(--text-secondary))" }}>
           {t("heatmap.legendTitle")}:
         </span>
         <div className="flex items-center gap-4">
@@ -337,19 +405,19 @@ export function CoverageHeatmap({
         >
           <div className="space-y-3 mt-2">
             {selectedCell.cell.operators.length === 0 ? (
-              <div className="p-4 text-center text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-900">
+              <div className="p-4 text-center text-sm rounded-lg" style={{ color: "rgb(220 38 38)", backgroundColor: "rgb(220 38 38 / 0.06)", border: "1px solid rgb(220 38 38 / 0.2)" }}>
                 <AlertTriangle className="w-5 h-5 mx-auto mb-1" />
                 No qualified operators assigned to this shift.
               </div>
             ) : (
-              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              <div className="divide-y" style={{ borderColor: "rgb(var(--border))" }}>
                 {selectedCell.cell.operators.map((op) => (
                   <div key={op.id} className="py-2.5 flex items-center justify-between">
                     <div>
-                      <span className="font-semibold text-sm text-slate-900 dark:text-slate-100 block">
+                      <span className="font-semibold text-sm block" style={{ color: "rgb(var(--text))" }}>
                         {op.name}
                       </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                      <span className="text-xs font-mono" style={{ color: "rgb(var(--text-muted))" }}>
                         {op.certifiedUntil
                           ? `${t("common.certifiedUntil")}: ${op.certifiedUntil}`
                           : "No expiry recorded"}
@@ -371,13 +439,13 @@ export function CoverageHeatmap({
 
                       {op.daysToExpiry !== null && (
                         <span
-                          className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                            op.daysToExpiry < 0
-                              ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
-                              : op.daysToExpiry <= 30
-                              ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
-                              : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                          }`}
+                          className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                          style={op.daysToExpiry < 0
+                            ? { backgroundColor: "rgb(220 38 38 / 0.1)", color: "rgb(185 28 28)" }
+                            : op.daysToExpiry <= 30
+                            ? { backgroundColor: "rgb(var(--accent-500) / 0.1)", color: "rgb(var(--accent-700))" }
+                            : { backgroundColor: "rgb(var(--surface-raised))", color: "rgb(var(--text-muted))" }
+                          }
                         >
                           {op.daysToExpiry < 0
                             ? `Overdue by ${Math.abs(op.daysToExpiry)}d`
