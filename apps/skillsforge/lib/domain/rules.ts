@@ -11,6 +11,7 @@ export const LEVELS: Record<number, string> = {
   3: "Proficient",
   4: "Can train others",
 };
+export const LEVEL_LABELS = LEVELS;
 
 export const CRITICALITY_WEIGHT: Record<number, number> = {
   1: 1.0,

@@ -4,6 +4,10 @@ import { vi } from "vitest";
 process.env.TZ = "Asia/Kolkata";
 process.env.NEXTAUTH_SECRET = "test-secret-key";
 process.env.SKILLSFORGE_DEV_AUTH = "true";
+process.env.DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/quikit_dev";
+process.env.DATABASE_URL_DIRECT = "postgresql://postgres:postgres@localhost:5432/quikit_dev";
+
+export * from "./helpers/mockDb";
 
 export let mockSession: any = {
   user: {
