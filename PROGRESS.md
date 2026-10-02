@@ -1,5 +1,5 @@
 # SkillsForge progress
-Mode: B     Branch: feature/skillsforge-recovery     Last updated: 2026-10-02 15:37 IST
+Mode: B     Branch: feature/skillsforge-recovery     Last updated: 2026-10-02 15:43 IST
 
 ## Milestones
 - [x] **M0 Safety, audit, decisions** (`7633ba5` backup branch created, audit and assumptions written)
@@ -7,26 +7,21 @@ Mode: B     Branch: feature/skillsforge-recovery     Last updated: 2026-10-02 15
 - [x] **M2 Data layer** (`804637e` Prisma schema with multiSchema `app_skillsforge`, pure domain functions, 100% domain tests, seed & seed:verify with 10/10 story checks green)
 - [x] **M3 API foundation** (`be319aa` withOrgAuth, requireAdmin, validationError, auditLog, permissions, health, meta, operators CRUD, skills CRUD, dev login & /login page, 41/41 tests green)
 - [x] **M4 Skill Grid and History (C1, B2)** (`0420a60` GET /api/grid, PATCH/DELETE /api/operator-skills, GET /api/history, /grid UI with 2-D matrix, inline Popover level edit 0-4, keyboard shortcuts, history SlidePanel, 49/49 tests green)
-- [x] **M5 Heatmap, expiry job, alerts (C2, C3, B3, B4)** (`e9c0b1a` GET /api/coverage, GET /api/alerts, POST /api/jobs/expiry-check, GET /api/jobs/runs, dashboard Coverage Heatmap with pulsing red glow, live Alert Panel with days remaining, Admin "Run check now", 59/59 tests green)
-- [ ] **M6 Assignment and reports (C4, B5)** (next: GET /api/assignments/check, POST/GET /api/assignments, GET /api/workload, GET /api/reports/gaps, GET /api/reports/verdict, /assign, /reports/gaps, /reports/verdict)
-- [ ] **M7 ACCEPTANCE GATE (D1-D4 tests & verification)**
+- [x] **M5 Heatmap, expiry job, alerts (C2, C3, B3, B4)** (`90e0ac9` GET /api/coverage, GET /api/alerts, POST /api/jobs/expiry-check, GET /api/jobs/runs, dashboard Coverage Heatmap with pulsing red glow, live Alert Panel with days remaining, Admin "Run check now", 59/59 tests green)
+- [x] **M6 Assignment and reports (C4, B5)** (`HEAD` GET /api/assignments/check, POST/GET /api/assignments, GET /api/workload, GET /api/reports/gaps, GET /api/reports/verdict, /assign, /reports, /reports/gaps, /reports/verdict, 71/71 tests green)
+- [ ] **M7 ACCEPTANCE GATE (D1-D4 tests & verification)** (next: write __tests__/api/acceptance.test.ts asserting D1-D4, verify browser demo flow)
 - [ ] **M8 MVP features (MVP-1 simulator, MVP-2 forecast, MVP-3 alternatives & workload)**
 - [ ] **M9 Bilingual completion audit**
 - [ ] **M10 Final verification and docs**
 
 ## Right now
-1. Implement M6 Assignment and Reports:
-   - `GET /api/assignments/check?operatorId=&skillId=&assignmentDate=&shiftId=` (returns green/red verdict, all blocking reasons, warnings, top 3 alternatives).
-   - `POST /api/assignments` (201 on green/accepted, 409 on red/rejected with reasons).
-   - `GET /api/assignments` (paginated list).
-   - `GET /api/workload?days=14` (accepted assignments per operator, median, overloaded flag).
-   - `GET /api/reports/gaps?asOf=` (gap report with SPOFs from DB groupBy, red cells, risk scores).
-   - `GET /api/reports/verdict` (printable verdict payload).
-2. Build UI pages for M6:
-   - `app/(dashboard)/assign/page.tsx` (live check, verdict card, alternatives, 409 rejection display).
-   - `app/(dashboard)/reports/page.tsx` & `reports/gaps/page.tsx` (printable gap report, risk scores, client CSV export).
-   - `app/(dashboard)/reports/verdict/page.tsx` (printable verdict certificate).
-3. Author route tests in `__tests__/api/assignments.test.ts` and `__tests__/api/reports.test.ts`.
+1. Write `__tests__/api/acceptance.test.ts` verifying all four compulsory demo-day acceptance criteria:
+   - `D1_edit_changes_heatmap`: live level edit changing coverage count without page reload.
+   - `D2_expiring_cert_on_alert_panel_with_days`: 5 expiring certs + 1 overdue cert on live alert panel with accurate days remaining and idempotency.
+   - `D3_unqualified_assignment_rejected`: 409 rejection with detailed reason messages for level-1 and expired certifications.
+   - `D4_gap_report_names_riskiest`: QA-8 ranked top operational risk with 3 top risks and SPOF aggregation.
+2. Verify browser demo flow.
+3. Commit M7 and proceed to M8 MVP features.
 
 ## Verified
 - Git backup branch `backup/pre-recovery` created and baseline committed (`f5afb68`).
@@ -39,13 +34,17 @@ Mode: B     Branch: feature/skillsforge-recovery     Last updated: 2026-10-02 15
 - `npm run seed:verify` passed: 10/10 story rules verified (5 red, 5 amber, 14 green; QA-8 SPOF & top risk; WLD-6 shift B/C red; exactly 6 trainers; Ravi removal turning 2 cells red; 5 expiring certs at 3,9,14,22,28 days; 1 overdue at -5 days; 45 assignments with top 3 >= 2x median; groupBy total matches pivot totals).
 - M3 API foundation complete (`be319aa`): health, meta, operators CRUD, skills CRUD, dev auth.
 - M4 Skill Grid & History complete (`0420a60`): 2-D matrix, inline editing, history panel.
-- M5 Heatmap, Expiry Job, Alerts complete:
-  - `GET /api/coverage`: coverage heatmap payload with pure domain `buildCoverage` and offline fallback.
-  - `GET /api/alerts`: open alerts with dynamic `daysRemaining` recalculation and stale catch-up.
-  - `POST /api/jobs/expiry-check`: runs expiry job, dual auth (`canEditSkillGrid` or `x-internal-secret`), rate-limited, audit logged, 201 Created.
-  - `GET /api/jobs/runs`: paginated execution history.
-  - Dashboard UI (`/`): dynamic `KpiCards`, `CoverageHeatmap` with pulsing red glow (`.cell-glow-red`) and forecast slider (MVP-2), `AlertPanel` with Admin "Run check now", and `TopRisksCard`.
-- `vitest run` passed: 59/59 tests green across 11 test files.
+- M5 Heatmap, Expiry Job, Alerts complete (`90e0ac9`): live heatmap with glow, expiry worker, live alert panel, KPI cards.
+- M6 Assignment and Reports complete:
+  - `GET /api/assignments/check`: live qualification verdict (green/red), blocking reasons, warnings, top 3 alternatives.
+  - `POST /api/assignments`: 201 Created on approval; 409 Conflict on rejection storing rejected row and returning reason.
+  - `GET /api/assignments`: paginated assignment log.
+  - `GET /api/workload`: 14-day workload distribution with median and overload flags.
+  - `GET /api/reports/gaps`: SPOFs via DB groupBy (<2 qualified), high-risk shift cells, and explainable multi-factor risk scores.
+  - `GET /api/reports/verdict`: printable qualification certificate payload.
+  - `/assign` page: live check, verdict card, blocking reasons, smart alternatives (MVP-3), deploy action.
+  - `/reports`, `/reports/gaps`, `/reports/verdict` pages: printable reports with client-side CSV export.
+- `vitest run` passed: 71/71 tests green across 13 test files.
 - `tsc --noEmit` passed: 0 type errors.
 - `next lint` passed: 0 ESLint warnings or errors.
 
