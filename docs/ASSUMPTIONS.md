@@ -9,7 +9,8 @@ This document records deliberate design and architectural decisions made per Rul
 - **Reason:** Keeps application code 100% compliant with QuikIT monorepo import conventions, allowing smooth drop-in replacement upon platform integration.
 
 ### 2. Database Provider & MultiSchema
-- **Decision:** Target schema is `app_skillsforge` on PostgreSQL 14+ via Prisma 5.7+ with `multiSchema` preview feature. For local development where PostgreSQL container may not be active, the schema is kept clean and compatible with both PostgreSQL and direct connection pooling (`DATABASE_URL`, `DATABASE_URL_DIRECT`).
+- **Decision:** The Prisma datasource uses PostgreSQL and the `multiSchema` preview feature, with all application models mapped to `app_skillsforge`. `DATABASE_URL` is the runtime connection; `DATABASE_URL_DIRECT` is the direct connection used by Prisma Migrate. Local development uses the repository's PostgreSQL Docker Compose service.
+- **Operational note:** This is PostgreSQL-only; do not point the generated client at SQLite. Production must configure both URLs to a persistent PostgreSQL database, and deployment should apply checked-in migrations before starting the app.
 
 ### 3. Locale & Numbers: Latin Numerals for Shop-Floor
 - **Decision:** In both English (`en`) and Hindi (`hi`), we format numerals with Latin digits (`-u-nu-latn`) for consistency, readability, and machine codes on the factory shop-floor (e.g. `OP-001`, `CNC-L1`, shift codes `A`, `B`, `C`).

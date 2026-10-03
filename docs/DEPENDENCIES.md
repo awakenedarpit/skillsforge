@@ -9,7 +9,7 @@ Per Section 2.1 of the master specification, all packages used in the project mu
 | `typescript` | Language | Strict static typing. |
 | `tailwindcss@3` | Styling | Platform standard utility CSS. |
 | `postcss` / `autoprefixer` | Tooling | Tailwind CSS build pipeline. |
-| `prisma` / `@prisma/client@5.7.x` | Database | PostgreSQL client and multiSchema management. |
+| `prisma@5.x` / `@prisma/client@5.x` | Database | PostgreSQL client and multiSchema management for the `app_skillsforge` schema. |
 | `next-auth@^4.24` | Auth | Platform standard session/JWT authentication. |
 | `zod` | Validation | Shared client and server validation. |
 | `@tanstack/react-query@^5` | State / Data Fetching | Client-side data fetching and mutation cache invalidation. |

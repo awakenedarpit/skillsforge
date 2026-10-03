@@ -100,7 +100,7 @@
 | **Framework** | Next.js App Router | 14.0.4 |
 | **Language** | TypeScript Strict | 5.3 |
 | **Database ORM** | Prisma | 5.7 |
-| **Database** | SQLite (dev) / PostgreSQL (prod) | — |
+| **Database** | PostgreSQL 14+ / Prisma multiSchema | `app_skillsforge` |
 | **Authentication** | NextAuth.js JWT | 4.24 |
 | **Server State** | TanStack React Query | v5 |
 | **Styling** | Tailwind CSS | 3.4 |
@@ -416,21 +416,24 @@ erDiagram
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/priyanshujaiswal17/skillsforge.git
+git clone https://github.com/awakenedarpit/skillsforge.git
 cd skillsforge
 
 # 2. Install all dependencies (monorepo root)
 npm install
 
-# 3. Set up local environment variables (Prisma CLI reads .env)
+# 3. Start the local PostgreSQL service (requires Docker Compose)
+docker compose up -d postgres
+
+# 4. Set up local environment variables (Prisma CLI reads .env)
 cp apps/skillsforge/.env.example apps/skillsforge/.env
 
-# 4. Generate the Prisma client, create/update the local SQLite database, and seed demo data
+# 5. Generate the Prisma client, apply checked-in PostgreSQL migrations, and seed demo data
 npm --prefix apps/skillsforge run db:generate
-npm --prefix apps/skillsforge run db:push
+npm --prefix apps/skillsforge run db:migrate
 npm --prefix apps/skillsforge run seed
 
-# 5. Start the development server on port 3011
+# 6. Start the development server on port 3011
 npm run dev
 ```
 
@@ -441,18 +444,20 @@ npm run dev
 ```env
 # apps/skillsforge/.env
 
-# Database (SQLite; matches apps/skillsforge/prisma/schema.prisma)
-DATABASE_URL="file:./dev.db"
+# PostgreSQL; local docker-compose URLs. Use a pooled DATABASE_URL and a direct
+# DATABASE_URL_DIRECT for migrations in production environments with a pooler.
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/quikit_dev?schema=app_skillsforge"
+DATABASE_URL_DIRECT="postgresql://postgres:postgres@localhost:5432/quikit_dev?schema=app_skillsforge"
 
 # NextAuth
 NEXTAUTH_SECRET="your-super-secret-key-here"
 NEXTAUTH_URL="http://localhost:3011"
 ```
 
-The Prisma schema currently declares the SQLite provider. The local database file is created by
-`prisma db push` (relative to the schema directory) and is ignored by Git. Do not point this
-SQLite-generated client at PostgreSQL. A production deployment needs durable storage for this
-SQLite file, or a deliberate provider/schema migration and a compatible persistent database.
+The Prisma schema and migrations target PostgreSQL schema `app_skillsforge`. The local Docker
+Compose service persists data in a named volume. Run `db:migrate:dev` when developing schema
+changes; production deploys should run `db:migrate` before starting the application. Configure
+both database URLs in the deployment environment; the direct URL is used by Prisma Migrate.
 
 ---
 

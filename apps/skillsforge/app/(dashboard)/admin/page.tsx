@@ -627,7 +627,7 @@ export default function AdminPage() {
             <Server className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="text-lg font-bold text-slate-900 dark:text-slate-100 mt-2">
-            Prisma · {databaseHealth?.provider || "SQLite"}
+            Prisma · {databaseHealth?.provider || "PostgreSQL"}
           </div>
           <span className={`text-xs font-medium flex items-center gap-1 mt-1 ${databaseHealth?.db === "up" ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
             {databaseHealth?.db === "up" ? (

@@ -16,6 +16,6 @@ export async function GET() {
     ok: true,
     version: "1.0.0",
     db: dbStatus,
-    provider: "SQLite",
+    provider: "PostgreSQL",
   });
 }

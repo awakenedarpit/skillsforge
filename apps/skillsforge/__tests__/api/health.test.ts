@@ -13,7 +13,7 @@ describe("GET /api/health", () => {
     expect(data.ok).toBe(true);
     expect(data.version).toBe("1.0.0");
     expect(data.db).toBe("up");
-    expect(data.provider).toBe("SQLite");
+    expect(data.provider).toBe("PostgreSQL");
   });
 
   it("reports db: down gracefully when db query throws", async () => {

@@ -5,8 +5,8 @@ process.env.TZ = "Asia/Kolkata";
 process.env.APP_TODAY = "2026-10-02";
 process.env.NEXTAUTH_SECRET = "test-secret-key";
 process.env.SKILLSFORGE_DEV_AUTH = "true";
-process.env.DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/quikit_dev";
-process.env.DATABASE_URL_DIRECT = "postgresql://postgres:postgres@localhost:5432/quikit_dev";
+process.env.DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/quikit_dev?schema=app_skillsforge";
+process.env.DATABASE_URL_DIRECT = "postgresql://postgres:postgres@localhost:5432/quikit_dev?schema=app_skillsforge";
 
 export * from "./helpers/mockDb";
 
