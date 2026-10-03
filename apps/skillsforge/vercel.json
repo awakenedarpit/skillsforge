@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npx prisma generate && next build",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "outputDirectory": ".next",
+  "env": {
+    "NEXTAUTH_URL": "https://skillsforge-roan.vercel.app",
+    "NEXTAUTH_SECRET": "insecure-dev-secret-for-skillsforge",
+    "SKILLSFORGE_DEV_AUTH": "true"
+  }
+}
+
