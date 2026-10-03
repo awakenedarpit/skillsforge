@@ -1,13 +1,10 @@
 /** @type {import('next').NextConfig} */
 
-// Auto-resolve NEXTAUTH_URL on Vercel:
-// - If not set, derive from VERCEL_URL
-// - If set to localhost but running on Vercel, override with VERCEL_URL
+// Set NEXTAUTH_URL from Vercel's auto-provided VERCEL_URL so the
+// client-side next-auth signIn() function posts to the correct host.
+// trustHost: true in authOptions handles the server-side URL resolution.
 if (process.env.VERCEL_URL) {
-  const current = process.env.NEXTAUTH_URL || "";
-  if (!current || current.includes("localhost")) {
-    process.env.NEXTAUTH_URL = `https://${process.env.VERCEL_URL}`;
-  }
+  process.env.NEXTAUTH_URL = `https://${process.env.VERCEL_URL}`;
 }
 
 const nextConfig = {

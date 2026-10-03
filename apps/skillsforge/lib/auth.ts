@@ -1,9 +1,13 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { DEMO_ORG, DEMO_USERS } from "./demo/seedData";
-import { getBaseUrl } from "./getBaseUrl";
 
 export const authOptions: NextAuthOptions = {
+  // trustHost: true tells NextAuth to derive the base URL from the
+  // x-forwarded-host header that Vercel sets on every request.
+  // Exists at runtime in next-auth 4.22+ but missing from its TS types
+  // in 4.24.x — cast required (as unknown as NextAuthOptions per rule 1).
+  ...(({ trustHost: true } as unknown) as NextAuthOptions),
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
@@ -49,30 +53,13 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async redirect({ url, baseUrl }) {
-      const resolvedBase = getBaseUrl();
-
-      // If the url is relative, prefix with the resolved base
-      if (url.startsWith("/")) {
-        return `${resolvedBase}${url}`;
-      }
-
-      // If the url points to localhost but we're deployed, rewrite it
-      try {
-        const parsed = new URL(url);
-        if (
-          parsed.hostname === "localhost" &&
-          resolvedBase !== baseUrl &&
-          !resolvedBase.includes("localhost")
-        ) {
-          return `${resolvedBase}${parsed.pathname}${parsed.search}${parsed.hash}`;
-        }
-      } catch {
-        // Malformed URL – fall through to default
-      }
-
-      // Same-origin urls are allowed through; external urls are blocked
-      if (url.startsWith(resolvedBase)) return url;
-      return resolvedBase;
+      // On Vercel, baseUrl is correctly derived from x-forwarded-host (via trustHost).
+      // If the incoming url is relative, use baseUrl.
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      // Allow same-origin redirects through.
+      if (url.startsWith(baseUrl)) return url;
+      // Fallback to the baseUrl root.
+      return baseUrl;
     },
     async jwt({ token, user }) {
       if (user) {
