@@ -12,7 +12,20 @@ import { DEMO_USERS } from "@/lib/demo/seedData";
 export default function LoginPage() {
   const { t } = useT();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const rawCallback = searchParams.get("callbackUrl") || "/";
+  let callbackUrl = "/";
+  try {
+    if (rawCallback.startsWith("/")) {
+      callbackUrl = rawCallback;
+    } else {
+      const parsed = new URL(rawCallback);
+      if (!parsed.hostname.includes("localhost")) {
+        callbackUrl = parsed.pathname + parsed.search + parsed.hash;
+      }
+    }
+  } catch {
+    callbackUrl = "/";
+  }
   const [loadingUserId, setLoadingUserId] = useState<string | null>(null);
 
   const ashaUser = DEMO_USERS.find((u) => u.id === "usr-asha-1") || DEMO_USERS[1];
@@ -68,7 +81,27 @@ export default function LoginPage() {
       setLoadingUserId(userId);
       const persona = personas.find((p) => p.id === userId);
       const targetUrl = persona?.role === "member" ? "/portal" : callbackUrl;
-      await signIn("dev-login", { userId, callbackUrl: targetUrl });
+      const res = await signIn("dev-login", {
+        userId,
+        callbackUrl: targetUrl,
+        redirect: false,
+      });
+
+      if (res?.ok) {
+        let destination = targetUrl;
+        if (res.url) {
+          try {
+            const parsed = new URL(res.url, window.location.origin);
+            destination = parsed.pathname + parsed.search + parsed.hash;
+          } catch {
+            destination = targetUrl;
+          }
+        }
+        window.location.href = destination;
+      } else {
+        console.error("Sign-in failed:", res?.error);
+        setLoadingUserId(null);
+      }
     } catch (err) {
       console.error("Sign-in failed:", err);
       setLoadingUserId(null);

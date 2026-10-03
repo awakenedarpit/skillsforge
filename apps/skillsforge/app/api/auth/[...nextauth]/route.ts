@@ -49,16 +49,16 @@ async function wrappedHandler(req: NextRequest, context: { params: { nextauth: s
   const contentType = response.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
     const text = await response.text();
-    if (text.includes("localhost")) {
-      const fixed = text.replace(/https?:\/\/localhost:\d+/g, realOrigin);
-      const newHeaders = new Headers(response.headers);
-      newHeaders.set("content-length", String(Buffer.byteLength(fixed)));
-      return new Response(fixed, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: newHeaders,
-      });
-    }
+    const fixed = text.includes("localhost")
+      ? text.replace(/https?:\/\/localhost:\d+/g, realOrigin)
+      : text;
+    const newHeaders = new Headers(response.headers);
+    newHeaders.set("content-length", String(Buffer.byteLength(fixed)));
+    return new Response(fixed, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: newHeaders,
+    });
   }
 
   return response;

@@ -11,7 +11,7 @@ const PROBE_TTL = 30000; // 30 seconds
 
 function probeDatabase() {
   if (process.env.NODE_ENV === "test" || process.env.VITEST) return;
-  if (isSQLite) {
+  if (isSQLite || process.env.VERCEL || (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("127.0.0.1") && !process.env.DATABASE_URL.includes("localhost"))) {
     dbOnline = true;
     return;
   }
