@@ -59,6 +59,11 @@ interface JobRun {
   errorMessage?: string | null;
 }
 
+interface DatabaseHealth {
+  db: "up" | "down";
+  provider: string;
+}
+
 import LeaveApprovalsPage from "../leaves/page";
 import { CalendarCheck } from "lucide-react";
 
@@ -87,6 +92,17 @@ export default function AdminPage() {
   });
 
   const pendingLeavesCount = leavesData?.summary?.pending || 0;
+
+  const { data: databaseHealth } = useQuery<DatabaseHealth>({
+    queryKey: ["database-health"],
+    queryFn: async () => {
+      const res = await fetch("/api/health", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to load database health");
+      return res.json();
+    },
+    refetchInterval: 30_000,
+    retry: false,
+  });
 
   // 1. Fetch Job Runs
   const { data: runsData, isLoading: runsLoading, refetch } = useQuery({
@@ -611,10 +627,19 @@ export default function AdminPage() {
             <Server className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="text-lg font-bold text-slate-900 dark:text-slate-100 mt-2">
-            Mode B (In-Memory Fallback)
+            Prisma · {databaseHealth?.provider || "SQLite"}
           </div>
-          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1 mt-1">
-            <CheckCircle2 className="w-3.5 h-3.5" /> High Performance & Active
+          <span className={`text-xs font-medium flex items-center gap-1 mt-1 ${databaseHealth?.db === "up" ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
+            {databaseHealth?.db === "up" ? (
+              <CheckCircle2 className="w-3.5 h-3.5" />
+            ) : (
+              <AlertTriangle className="w-3.5 h-3.5" />
+            )}
+            {databaseHealth?.db === "up"
+              ? "Database connected"
+              : databaseHealth?.db === "down"
+                ? "Database unavailable"
+                : "Checking database…"}
           </span>
         </div>
 

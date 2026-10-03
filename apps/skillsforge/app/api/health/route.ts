@@ -6,8 +6,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   let dbStatus: "up" | "down" = "down";
   try {
-    // Attempt a light query to test DB status
-    await db.$queryRaw`SELECT 1`;
+    await db.org.count();
     dbStatus = "up";
   } catch {
     dbStatus = "down";
@@ -17,5 +16,6 @@ export async function GET() {
     ok: true,
     version: "1.0.0",
     db: dbStatus,
+    provider: "SQLite",
   });
 }

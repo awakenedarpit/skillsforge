@@ -422,13 +422,13 @@ cd skillsforge
 # 2. Install all dependencies (monorepo root)
 npm install
 
-# 3. Set up environment variables
-cp apps/skillsforge/.env.example apps/skillsforge/.env.local
+# 3. Set up local environment variables (Prisma CLI reads .env)
+cp apps/skillsforge/.env.example apps/skillsforge/.env
 
-# 4. Push the Prisma schema & seed demo data
-cd apps/skillsforge
-npx prisma db push
-cd ../..
+# 4. Generate the Prisma client, create/update the local SQLite database, and seed demo data
+npm --prefix apps/skillsforge run db:generate
+npm --prefix apps/skillsforge run db:push
+npm --prefix apps/skillsforge run seed
 
 # 5. Start the development server on port 3011
 npm run dev
@@ -439,15 +439,20 @@ npm run dev
 ### Environment Variables
 
 ```env
-# apps/skillsforge/.env.local
+# apps/skillsforge/.env
 
-# Database (SQLite for dev, PostgreSQL for prod)
+# Database (SQLite; matches apps/skillsforge/prisma/schema.prisma)
 DATABASE_URL="file:./dev.db"
 
 # NextAuth
 NEXTAUTH_SECRET="your-super-secret-key-here"
 NEXTAUTH_URL="http://localhost:3011"
 ```
+
+The Prisma schema currently declares the SQLite provider. The local database file is created by
+`prisma db push` (relative to the schema directory) and is ignored by Git. Do not point this
+SQLite-generated client at PostgreSQL. A production deployment needs durable storage for this
+SQLite file, or a deliberate provider/schema migration and a compatible persistent database.
 
 ---
 
@@ -725,4 +730,3 @@ chore:    Build process or tooling
 ## 📄 License
 
 This project is licensed under the **MIT License** — see the [LICENSE](./LICENSE) file for details.
-

@@ -4,6 +4,9 @@ node_modules/
 dist/
 build/
 coverage/
+# Keep the Next.js coverage API route (not generated test coverage) in source control.
+!apps/skillsforge/app/api/coverage/
+!apps/skillsforge/app/api/coverage/**
 *.log
 .env
 .env.local
