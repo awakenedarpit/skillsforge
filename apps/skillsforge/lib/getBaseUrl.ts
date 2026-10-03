@@ -9,8 +9,8 @@
  * The returned URL never has a trailing slash.
  */
 export function getBaseUrl(): string {
-  // Explicit NEXTAUTH_URL always wins (may be set via Vercel env vars)
-  if (process.env.NEXTAUTH_URL) {
+  // NEXTAUTH_URL wins unless it's a localhost value on Vercel
+  if (process.env.NEXTAUTH_URL && !process.env.NEXTAUTH_URL.includes("localhost")) {
     return process.env.NEXTAUTH_URL.replace(/\/+$/, "");
   }
 
@@ -19,6 +19,11 @@ export function getBaseUrl(): string {
     return `https://${process.env.VERCEL_URL}`;
   }
 
-  // Local dev fallback
+  // NEXTAUTH_URL with localhost (local dev)
+  if (process.env.NEXTAUTH_URL) {
+    return process.env.NEXTAUTH_URL.replace(/\/+$/, "");
+  }
+
+  // Final fallback for local dev
   return `http://localhost:${process.env.PORT || 3011}`;
 }

@@ -1,8 +1,13 @@
 /** @type {import('next').NextConfig} */
 
-// Auto-resolve NEXTAUTH_URL on Vercel when not explicitly set
-if (!process.env.NEXTAUTH_URL && process.env.VERCEL_URL) {
-  process.env.NEXTAUTH_URL = `https://${process.env.VERCEL_URL}`;
+// Auto-resolve NEXTAUTH_URL on Vercel:
+// - If not set, derive from VERCEL_URL
+// - If set to localhost but running on Vercel, override with VERCEL_URL
+if (process.env.VERCEL_URL) {
+  const current = process.env.NEXTAUTH_URL || "";
+  if (!current || current.includes("localhost")) {
+    process.env.NEXTAUTH_URL = `https://${process.env.VERCEL_URL}`;
+  }
 }
 
 const nextConfig = {
