@@ -1,6 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { DEMO_ORG, DEMO_USERS } from "./demo/seedData";
+import { getBaseUrl } from "./getBaseUrl";
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -47,6 +48,32 @@ export const authOptions: NextAuthOptions = {
       : []),
   ],
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      const resolvedBase = getBaseUrl();
+
+      // If the url is relative, prefix with the resolved base
+      if (url.startsWith("/")) {
+        return `${resolvedBase}${url}`;
+      }
+
+      // If the url points to localhost but we're deployed, rewrite it
+      try {
+        const parsed = new URL(url);
+        if (
+          parsed.hostname === "localhost" &&
+          resolvedBase !== baseUrl &&
+          !resolvedBase.includes("localhost")
+        ) {
+          return `${resolvedBase}${parsed.pathname}${parsed.search}${parsed.hash}`;
+        }
+      } catch {
+        // Malformed URL – fall through to default
+      }
+
+      // Same-origin urls are allowed through; external urls are blocked
+      if (url.startsWith(resolvedBase)) return url;
+      return resolvedBase;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
